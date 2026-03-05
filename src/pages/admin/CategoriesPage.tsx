@@ -14,7 +14,6 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,7 +78,7 @@ function CategoryForm({ initial, onSubmit, isPending, onClose }: CategoryFormPro
                         <button
                             type="button"
                             onClick={removeImage}
-                            className="absolute top-2 right-2 bg-white rounded-full p-1 shadow hover:bg-red-50"
+                            className="absolute top-2 right-2 bg-white rounded-full p-1 shadow hover:bg-red-50 active:scale-90 transition-all"
                         >
                             <X className="w-4 h-4 text-red-500" />
                         </button>
@@ -138,11 +137,11 @@ function CategoryForm({ initial, onSubmit, isPending, onClose }: CategoryFormPro
                 />
             </div>
 
-            <div className="flex gap-2 mt-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+            <div className="flex gap-2 mt-2 pt-2">
+                <Button type="button" variant="outline" className="flex-1 hover:bg-gray-100 active:scale-95 transition-all" onClick={onClose}>
                     Cancel
                 </Button>
-                <Button type="submit" className="flex-1" disabled={isPending}>
+                <Button type="submit" className="flex-1 bg-gray-900 hover:bg-gray-700 active:scale-95 transition-all text-white" disabled={isPending}>
                     {isPending ? 'Saving...' : initial ? 'Update Category' : 'Create Category'}
                 </Button>
             </div>
@@ -202,12 +201,13 @@ export default function AdminCategoriesPage() {
                 </div>
 
                 {/* Add Dialog */}
-                <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="gap-2">
-                            <Plus className="w-4 h-4" /> Add Category
-                        </Button>
-                    </DialogTrigger>
+                <Button
+                    className="gap-2 bg-gray-900 hover:bg-gray-700 active:scale-95 transition-all text-white"
+                    onClick={() => setIsAddOpen(true)}
+                >
+                    <Plus className="w-4 h-4" /> Add Category
+                </Button>
+                <Dialog open={isAddOpen} onOpenChange={open => { if (!open) setIsAddOpen(false); }}>
                     <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle>Add New Category</DialogTitle>
@@ -257,23 +257,24 @@ export default function AdminCategoriesPage() {
                             <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No categories found</TableCell></TableRow>
                         ) : (
                             categories?.map((cat) => (
-                                <TableRow key={cat.id}>
+                                <TableRow key={cat.id} className="hover:bg-gray-50 transition-colors">
                                     <TableCell>
                                         <div className="w-12 h-12 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
                                             {cat.image
                                                 ? <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-                                                : <span className="text-xs text-gray-400">No img</span>
+                                                : <span className="text-xs text-gray-400">—</span>
                                             }
                                         </div>
                                     </TableCell>
                                     <TableCell className="font-medium">{cat.name}</TableCell>
-                                    <TableCell className="text-muted-foreground font-mono text-sm">{cat.slug}</TableCell>
+                                    <TableCell className="text-gray-500 font-mono text-sm">{cat.slug}</TableCell>
                                     <TableCell>{cat._count?.products ?? 0}</TableCell>
                                     <TableCell className="text-right">
                                         <Button
                                             variant="ghost"
                                             size="icon"
                                             title="Edit"
+                                            className="hover:bg-gray-100 active:scale-90 transition-all"
                                             onClick={() => setEditTarget(cat)}
                                         >
                                             <Pencil className="w-4 h-4" />
@@ -281,7 +282,7 @@ export default function AdminCategoriesPage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="text-destructive hover:text-destructive"
+                                            className="text-red-500 hover:bg-red-50 hover:text-red-600 active:scale-90 transition-all"
                                             onClick={() => handleDelete(cat)}
                                             disabled={deleteMutation.isPending}
                                         >
