@@ -5,25 +5,19 @@ import {
     getMyOrderByIdApi,
     getAllOrdersApi,
     updateOrderStatusApi,
-} from './orders.api';
-import type { CreateOrderDto, OrdersListParams } from './orders.types';
-
-export const orderKeys = {
-    all: ['orders'] as const,
-    myOrders: () => ['orders', 'my'] as const,
-    myOrder: (id: string) => ['orders', 'my', id] as const,
-    adminList: (params: OrdersListParams) => ['orders', 'admin', 'list', params] as const,
-};
+} from '@/api/orders/orders.api';
+import type { CreateOrderDto, OrdersListParams } from '@/api/orders/orders.types';
+import { keys } from './keys';
 
 export const useMyOrders = () =>
     useQuery({
-        queryKey: orderKeys.myOrders(),
+        queryKey: keys.orders.myOrders(),
         queryFn: getMyOrdersApi,
     });
 
 export const useMyOrder = (id: string) =>
     useQuery({
-        queryKey: orderKeys.myOrder(id),
+        queryKey: keys.orders.myOrder(id),
         queryFn: () => getMyOrderByIdApi(id),
         enabled: !!id,
     });
@@ -33,7 +27,7 @@ export const useCreateOrder = () => {
     return useMutation({
         mutationFn: (dto: CreateOrderDto) => createOrderApi(dto),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: orderKeys.myOrders() });
+            queryClient.invalidateQueries({ queryKey: keys.orders.myOrders() });
         },
     });
 };
@@ -41,7 +35,7 @@ export const useCreateOrder = () => {
 // ─── Admin hooks ─────────────────────────────────────────────────────────────
 export const useAllOrders = (params: OrdersListParams = {}) =>
     useQuery({
-        queryKey: orderKeys.adminList(params),
+        queryKey: keys.orders.adminList(params),
         queryFn: () => getAllOrdersApi(params),
     });
 
@@ -51,7 +45,7 @@ export const useUpdateOrderStatus = () => {
         mutationFn: ({ id, status }: { id: string; status: string }) =>
             updateOrderStatusApi(id, status),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: orderKeys.all });
+            queryClient.invalidateQueries({ queryKey: keys.orders.all });
         },
     });
 };

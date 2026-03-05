@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useProduct } from '@/api/products/products.hooks';
-import { useAddCartItem } from '@/api/cart/cart.hooks';
+import { useProduct } from '@/hooks';
+import { useAddCartItem } from '@/hooks';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { Star, ShoppingBag, ChevronLeft, ChevronRight, Check } from 'lucide-react';
@@ -13,6 +13,8 @@ export default function ProductDetailPage() {
     const { isAuthenticated } = useAuthStore();
     const { addItem, openCart } = useCartStore();
 
+    // ── All hooks must be at top, before any early return ──────────────────
+    const [selectedColor, setSelectedColor] = useState('');
     const [selectedVariant, setSelectedVariant] = useState<any>(null);
     const [quantity, setQuantity] = useState(1);
     const [imgIdx, setImgIdx] = useState(0);
@@ -20,6 +22,7 @@ export default function ProductDetailPage() {
 
     const { data: product, isLoading } = useProduct(slug!);
     const addToCartMutation = useAddCartItem();
+    // ───────────────────────────────────────────────────────────────────────
 
     if (isLoading) return (
         <div className="pt-24 min-h-screen" style={{ background: 'var(--color-cream)' }}>
@@ -34,20 +37,44 @@ export default function ProductDetailPage() {
         </div>
     );
 
-    if (!product) return null;
+    if (!product) return (
+        <div className="pt-24 min-h-screen flex items-center justify-center" style={{ background: 'var(--color-cream)' }}>
+            <p style={{ color: 'var(--color-stone)' }}>Product not found.</p>
+        </div>
+    );
 
     const avgRating = product.reviews?.length
         ? product.reviews.reduce((s, r) => s + r.rating, 0) / product.reviews.length
         : 0;
 
-    // Group variants by color
+    // Derive from product data (not hooks — so safe after early return)
     const colors = [...new Set(product.variants.map((v) => v.color))];
-    const sizes = [...new Set(product.variants.map((v) => v.size))];
-    const [selectedColor, setSelectedColor] = useState(colors[0] ?? '');
-    const availableSizes = product.variants.filter((v) => v.color === selectedColor);
+    const activeColor = selectedColor || colors[0] || '';
+    const availableSizes = product.variants.filter((v) => v.color === activeColor);
 
     const handleAddToCart = async () => {
-        if (!isAuthenticated) { navigate('/login', { state: { from: `/shop/${slug}` } }); return; }
+        if (!isAuthenticated) {
+            toast((t) => (
+                <div className="flex flex-col gap-2">
+                    <p className="text-sm font-medium">Bạn cần đăng nhập để mua hàng</p>
+                    <div className="flex gap-2">
+                        <button
+                            className="flex-1 py-1.5 px-3 text-xs bg-gray-900 text-white rounded hover:bg-gray-700"
+                            onClick={() => { toast.dismiss(t.id); navigate('/login', { state: { from: `/shop/${slug}` } }); }}
+                        >
+                            Đăng nhập
+                        </button>
+                        <button
+                            className="flex-1 py-1.5 px-3 text-xs border rounded hover:bg-gray-50"
+                            onClick={() => toast.dismiss(t.id)}
+                        >
+                            Bỏ qua
+                        </button>
+                    </div>
+                </div>
+            ), { duration: 6000 });
+            return;
+        }
         if (!selectedVariant) { toast.error('Please select a size'); return; }
         if (selectedVariant.stock < quantity) { toast.error('Not enough stock'); return; }
 
@@ -141,52 +168,63 @@ export default function ProductDetailPage() {
                         <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--color-charcoal-light)' }}>{product.description}</p>
 
                         {/* Color */}
-                        <div className="mb-6">
-                            <p className="text-xs tracking-widest uppercase mb-3 font-medium" style={{ color: 'var(--color-stone)' }}>
-                                Color: <span style={{ color: 'var(--color-brown)' }}>{selectedColor}</span>
-                            </p>
-                            <div className="flex gap-2">
-                                {colors.map((color) => (
-                                    <button
-                                        key={color}
-                                        onClick={() => { setSelectedColor(color); setSelectedVariant(null); }}
-                                        className={`px-4 py-2 text-xs border transition-all ${selectedColor === color ? 'btn-primary' : 'btn-outline'}`}
-                                    >
-                                        {color}
-                                    </button>
-                                ))}
+                        {colors.length > 0 && (
+                            <div className="mb-6">
+                                <p className="text-xs tracking-widest uppercase mb-3 font-medium" style={{ color: 'var(--color-stone)' }}>
+                                    Color: <span style={{ color: 'var(--color-brown)' }}>{activeColor}</span>
+                                </p>
+                                <div className="flex gap-2">
+                                    {colors.map((color) => (
+                                        <button
+                                            key={color}
+                                            onClick={() => { setSelectedColor(color); setSelectedVariant(null); }}
+                                            className={`px-4 py-2 text-xs border transition-all ${activeColor === color ? 'btn-primary' : 'btn-outline'}`}
+                                        >
+                                            {color}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Size */}
-                        <div className="mb-6">
-                            <p className="text-xs tracking-widest uppercase mb-3 font-medium" style={{ color: 'var(--color-stone)' }}>Size</p>
-                            <div className="flex flex-wrap gap-2">
-                                {availableSizes.map((variant) => (
-                                    <button
-                                        key={variant.id}
-                                        onClick={() => setSelectedVariant(variant)}
-                                        disabled={variant.stock === 0}
-                                        className={`w-12 h-12 text-sm border transition-all ${selectedVariant?.id === variant.id ? 'btn-primary' : variant.stock === 0 ? 'opacity-30 cursor-not-allowed btn-outline' : 'btn-outline'}`}
-                                    >
-                                        {variant.size}
-                                    </button>
-                                ))}
+                        {availableSizes.length > 0 && (
+                            <div className="mb-6">
+                                <p className="text-xs tracking-widest uppercase mb-3 font-medium" style={{ color: 'var(--color-stone)' }}>Size</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableSizes.map((variant) => (
+                                        <button
+                                            key={variant.id}
+                                            onClick={() => setSelectedVariant(variant)}
+                                            disabled={variant.stock === 0}
+                                            className={`w-12 h-12 text-sm border transition-all ${selectedVariant?.id === variant.id ? 'btn-primary' : variant.stock === 0 ? 'opacity-30 cursor-not-allowed btn-outline' : 'btn-outline'}`}
+                                        >
+                                            {variant.size}
+                                        </button>
+                                    ))}
+                                </div>
+                                {selectedVariant && (
+                                    <p className="text-xs mt-2" style={{ color: selectedVariant.stock < 5 ? '#DC2626' : 'var(--color-stone)' }}>
+                                        {selectedVariant.stock < 5 ? `Only ${selectedVariant.stock} left!` : `${selectedVariant.stock} in stock`}
+                                    </p>
+                                )}
                             </div>
-                            {selectedVariant && (
-                                <p className="text-xs mt-2" style={{ color: selectedVariant.stock < 5 ? '#DC2626' : 'var(--color-stone)' }}>
-                                    {selectedVariant.stock < 5 ? `Only ${selectedVariant.stock} left!` : `${selectedVariant.stock} in stock`}
-                                </p>
-                            )}
-                        </div>
+                        )}
+
+                        {/* No variants fallback */}
+                        {product.variants.length === 0 && (
+                            <div className="mb-6 p-3 rounded text-sm" style={{ background: '#FEF3C7', color: '#92400E' }}>
+                                This product has no size/color variants yet.
+                            </div>
+                        )}
 
                         {/* Quantity */}
                         <div className="mb-8">
                             <p className="text-xs tracking-widest uppercase mb-3 font-medium" style={{ color: 'var(--color-stone)' }}>Quantity</p>
                             <div className="flex items-center border w-fit" style={{ borderColor: '#D4C9B5' }}>
-                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-4 py-3 hover:bg-ivory" style={{ color: 'var(--color-brown)' }}>−</button>
+                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-4 py-3 hover:opacity-70" style={{ color: 'var(--color-brown)' }}>−</button>
                                 <span className="px-6 py-3 text-sm" style={{ color: 'var(--color-brown)', borderLeft: '1px solid #D4C9B5', borderRight: '1px solid #D4C9B5' }}>{quantity}</span>
-                                <button onClick={() => setQuantity(quantity + 1)} className="px-4 py-3 hover:bg-ivory" style={{ color: 'var(--color-brown)' }}>+</button>
+                                <button onClick={() => setQuantity(quantity + 1)} className="px-4 py-3 hover:opacity-70" style={{ color: 'var(--color-brown)' }}>+</button>
                             </div>
                         </div>
 

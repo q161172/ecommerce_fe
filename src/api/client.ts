@@ -39,6 +39,11 @@ apiClient.interceptors.response.use(
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+            // Only intercept if user had a token (was logged in)
+            // Anonymous 401s (e.g. public pages calling protected API) should just fail silently
+            const hasToken = !!useAuthStore.getState().accessToken;
+            if (!hasToken) return Promise.reject(error);
+
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });

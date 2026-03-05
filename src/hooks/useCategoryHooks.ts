@@ -5,23 +5,18 @@ import {
     createCategoryApi,
     updateCategoryApi,
     deleteCategoryApi,
-} from './categories.api';
-
-export const categoryKeys = {
-    all: ['categories'] as const,
-    list: () => ['categories', 'list'] as const,
-    detail: (slug: string) => ['categories', 'detail', slug] as const,
-};
+} from '@/api/categories/categories.api';
+import { keys } from './keys';
 
 export const useCategories = () =>
     useQuery({
-        queryKey: categoryKeys.list(),
+        queryKey: keys.categories.list(),
         queryFn: getCategoriesApi,
     });
 
 export const useCategory = (slug: string) =>
     useQuery({
-        queryKey: categoryKeys.detail(slug),
+        queryKey: keys.categories.detail(slug),
         queryFn: () => getCategoryBySlugApi(slug),
         enabled: !!slug,
     });
@@ -32,7 +27,7 @@ export const useCreateCategory = () => {
         mutationFn: (params: { name: string; slug?: string; description?: string; imageFile?: File }) =>
             createCategoryApi(params),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+            queryClient.invalidateQueries({ queryKey: keys.categories.all });
         },
     });
 };
@@ -43,7 +38,7 @@ export const useUpdateCategory = () => {
         mutationFn: ({ id, params }: { id: string; params: { name?: string; slug?: string; description?: string; imageFile?: File; removeImage?: boolean } }) =>
             updateCategoryApi(id, params),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+            queryClient.invalidateQueries({ queryKey: keys.categories.all });
         },
     });
 };
@@ -53,7 +48,7 @@ export const useDeleteCategory = () => {
     return useMutation({
         mutationFn: (id: string) => deleteCategoryApi(id),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+            queryClient.invalidateQueries({ queryKey: keys.categories.all });
         },
     });
 };

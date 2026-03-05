@@ -5,24 +5,19 @@ import {
     createProductApi,
     updateProductApi,
     deleteProductApi,
-} from './products.api';
-import type { ProductFilter } from './products.types';
-
-export const productKeys = {
-    all: ['products'] as const,
-    list: (filter: ProductFilter) => ['products', 'list', filter] as const,
-    detail: (slug: string) => ['products', 'detail', slug] as const,
-};
+} from '@/api/products/products.api';
+import type { ProductFilter } from '@/api/products/products.types';
+import { keys } from './keys';
 
 export const useProducts = (filter: ProductFilter = {}) =>
     useQuery({
-        queryKey: productKeys.list(filter),
+        queryKey: keys.products.list(filter),
         queryFn: () => getProductsApi(filter),
     });
 
 export const useProduct = (slug: string) =>
     useQuery({
-        queryKey: productKeys.detail(slug),
+        queryKey: keys.products.detail(slug),
         queryFn: () => getProductBySlugApi(slug),
         enabled: !!slug,
     });
@@ -32,7 +27,7 @@ export const useCreateProduct = () => {
     return useMutation({
         mutationFn: (formData: FormData) => createProductApi(formData),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: productKeys.all });
+            queryClient.invalidateQueries({ queryKey: keys.products.all });
         },
     });
 };
@@ -43,7 +38,7 @@ export const useUpdateProduct = () => {
         mutationFn: ({ id, formData }: { id: string; formData: FormData }) =>
             updateProductApi(id, formData),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: productKeys.all });
+            queryClient.invalidateQueries({ queryKey: keys.products.all });
         },
     });
 };
@@ -53,7 +48,7 @@ export const useDeleteProduct = () => {
     return useMutation({
         mutationFn: (id: string) => deleteProductApi(id),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: productKeys.all });
+            queryClient.invalidateQueries({ queryKey: keys.products.all });
         },
     });
 };

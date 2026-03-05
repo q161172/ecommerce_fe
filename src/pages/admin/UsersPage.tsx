@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useUsers, useToggleUserActive, useChangeUserRole } from '@/api/users/users.hooks';
+import { useUsers, useToggleUserActive, useChangeUserRole } from '@/hooks';
 import {
     Table,
     TableBody,

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/api/categories/categories.hooks';
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks';
 import type { CategoryItem } from '@/api/categories/categories.types';
 import {
     Table,

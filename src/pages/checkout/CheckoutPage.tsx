@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useProfile } from '@/api/users/users.hooks';
-import { useCreateOrder } from '@/api/orders/orders.hooks';
+import { useProfile } from '@/hooks';
+import { useCreateOrder } from '@/hooks';
 import { useCartStore } from '@/store/cartStore';
 import { MapPin, Plus, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

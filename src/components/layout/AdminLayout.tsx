@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, Tag, ShoppingBag, Users, LogOut, ExternalLink } from 'lucide-react';
-import { useLogout } from '@/api/auth/auth.hooks';
+import { useLogout } from '@/hooks';
 import toast from 'react-hot-toast';
 
 const navItems = [

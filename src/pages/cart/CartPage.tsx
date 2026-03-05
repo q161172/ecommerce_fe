@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useCartStore } from '@/store/cartStore';
-import { useUpdateCartItem, useRemoveCartItem } from '@/api/cart/cart.hooks';
+import { useUpdateCartItem, useRemoveCartItem } from '@/hooks';
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag } from 'lucide-react';
 import toast from 'react-hot-toast';
 

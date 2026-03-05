@@ -1,15 +1,91 @@
 import { useState } from 'react';
-import { useProducts } from '@/api/products/products.hooks';
-import { useCategories } from '@/api/categories/categories.hooks';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, Star, ChevronDown } from 'lucide-react';
+import { useProducts } from '@/hooks';
+import { useCategories } from '@/hooks';
+import { useAddCartItem } from '@/hooks';
+import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Search, SlidersHorizontal, X, Star, ShoppingBag } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 function ProductCard({ product }: { product: any }) {
+    const navigate = useNavigate();
+    const { isAuthenticated } = useAuthStore();
+    const { addItem, openCart } = useCartStore();
+    const addToCartMutation = useAddCartItem();
+
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [selectedVariant, setSelectedVariant] = useState<any>(null);
+    const [adding, setAdding] = useState(false);
+
     const avgRating = product.reviews?.length
         ? product.reviews.reduce((s: number, r: any) => s + r.rating, 0) / product.reviews.length
         : 0;
+
+    const variants: any[] = product.variants ?? [];
+    const hasVariants = variants.length > 0;
+
+    const handleQuickAdd = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!isAuthenticated) {
+            toast((t) => (
+                <div className="flex flex-col gap-2">
+                    <p className="text-sm font-medium">Đăng nhập để thêm vào giỏ hàng</p>
+                    <div className="flex gap-2">
+                        <button
+                            className="flex-1 py-1.5 px-3 text-xs bg-gray-900 text-white rounded hover:bg-gray-700"
+                            onClick={() => { toast.dismiss(t.id); navigate('/login', { state: { from: `/shop/${product.slug}` } }); }}
+                        >
+                            Đăng nhập
+                        </button>
+                        <button
+                            className="flex-1 py-1.5 px-3 text-xs border rounded hover:bg-gray-50"
+                            onClick={() => toast.dismiss(t.id)}
+                        >
+                            Bỏ qua
+                        </button>
+                    </div>
+                </div>
+            ), { duration: 6000 });
+            return;
+        }
+
+        if (!hasVariants) {
+            toast.error('Sản phẩm này chưa có biến thể. Xem chi tiết để biết thêm.'); return;
+        }
+
+        // Toggle size picker
+        setPickerOpen(o => !o);
+    };
+
+    const handleAddWithVariant = async (e: React.MouseEvent, variant: any) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (variant.stock === 0) { toast.error('Hết hàng'); return; }
+        setSelectedVariant(variant);
+        setAdding(true);
+        try {
+            await addToCartMutation.mutateAsync({ productId: product.id, variantId: variant.id, quantity: 1 });
+            addItem({
+                id: variant.id, cartId: '', productId: product.id, variantId: variant.id, quantity: 1,
+                product: { id: product.id, name: product.name, slug: product.slug, images: product.images, price: product.price },
+                variant,
+            });
+            setPickerOpen(false);
+            openCart();
+            toast.success(`${product.name} — ${variant.size} added!`);
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message ?? 'Failed to add');
+        } finally {
+            setAdding(false);
+            setSelectedVariant(null);
+        }
+    };
+
     return (
-        <Link to={`/shop/${product.slug}`} className="product-card group">
+        <Link to={`/shop/${product.slug}`} className="product-card group relative">
             <div className="product-image">
                 {product.images[0] ? (
                     <img src={product.images[0]} alt={product.name} loading="lazy" />
@@ -18,6 +94,41 @@ function ProductCard({ product }: { product: any }) {
                 )}
                 {product.comparePrice && (
                     <div className="absolute top-3 left-3"><span className="badge-gold text-[10px]">Sale</span></div>
+                )}
+
+                {/* Quick Add button — appears on hover */}
+                <button
+                    onClick={handleQuickAdd}
+                    className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2 text-xs tracking-wide opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200"
+                    style={{ background: 'rgba(44,24,16,0.92)', color: '#F5F0E8', whiteSpace: 'nowrap' }}
+                    title="Add to cart"
+                >
+                    <ShoppingBag size={13} />
+                    Quick Add
+                </button>
+
+                {/* Size picker popup */}
+                {pickerOpen && (
+                    <div
+                        className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 p-3 shadow-xl rounded"
+                        style={{ background: '#FAF7F2', minWidth: 160, border: '1px solid #EDE7D9' }}
+                        onClick={e => { e.preventDefault(); e.stopPropagation(); }}
+                    >
+                        <p className="text-[10px] tracking-widest uppercase mb-2 text-center" style={{ color: 'var(--color-stone)' }}>Select Size</p>
+                        <div className="flex flex-wrap gap-1.5 justify-center">
+                            {variants.map((v) => (
+                                <button
+                                    key={v.id}
+                                    disabled={v.stock === 0 || adding}
+                                    onClick={(e) => handleAddWithVariant(e, v)}
+                                    className={`w-9 h-9 text-xs border transition-all ${v.stock === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:border-amber-600 hover:text-amber-700'} ${selectedVariant?.id === v.id && adding ? 'opacity-60' : ''}`}
+                                    style={{ borderColor: '#D4C9B5', color: 'var(--color-brown)' }}
+                                >
+                                    {v.stock === 0 ? '—' : v.size}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 )}
             </div>
             <div className="p-4">

@@ -1,4 +1,4 @@
-import { useMyOrders } from '@/api/orders/orders.hooks';
+import { useMyOrders } from '@/hooks';
 import { format } from 'date-fns';
 import { Package, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useProducts } from '@/api/products/products.hooks';
+import { useProducts } from '@/hooks';
 import { ArrowRight, Star } from 'lucide-react';
 
 function ProductCard({ product }: { product: any }) {

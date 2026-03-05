@@ -1,7 +1,7 @@
 import { X, ShoppingBag, Trash2, Plus, Minus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCartStore } from '@/store/cartStore';
-import { useUpdateCartItem, useRemoveCartItem } from '@/api/cart/cart.hooks';
+import { useUpdateCartItem, useRemoveCartItem } from '@/hooks';
 import toast from 'react-hot-toast';
 
 export default function CartSidebar() {

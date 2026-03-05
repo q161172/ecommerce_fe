@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useProfile, useAddAddress, useDeleteAddress } from '@/api/users/users.hooks';
+import { useProfile, useAddAddress, useDeleteAddress } from '@/hooks';
 import { useAuthStore } from '@/store/authStore';
 import { User, MapPin, Plus, Trash2, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';

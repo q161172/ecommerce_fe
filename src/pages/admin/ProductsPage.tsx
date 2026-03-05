@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from '@/api/products/products.hooks';
-import { useCategories } from '@/api/categories/categories.hooks';
+import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from '@/hooks';
+import { useCategories } from '@/hooks';
 import type { Product } from '@/types';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,

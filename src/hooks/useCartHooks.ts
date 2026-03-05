@@ -5,17 +5,18 @@ import {
     updateCartItemApi,
     removeCartItemApi,
     clearCartApi,
-} from './cart.api';
+} from '@/api/cart/cart.api';
+import { useAuthStore } from '@/store/authStore';
+import { keys } from './keys';
 
-export const cartKeys = {
-    cart: ['cart'] as const,
-};
-
-export const useCart = () =>
-    useQuery({
-        queryKey: cartKeys.cart,
+export const useCart = () => {
+    const { isAuthenticated } = useAuthStore();
+    return useQuery({
+        queryKey: keys.cart.root,
         queryFn: getCartApi,
+        enabled: isAuthenticated,
     });
+};
 
 export const useAddCartItem = () => {
     const queryClient = useQueryClient();
@@ -30,7 +31,7 @@ export const useAddCartItem = () => {
             quantity: number;
         }) => addCartItemApi(productId, variantId, quantity),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: cartKeys.cart });
+            queryClient.invalidateQueries({ queryKey: keys.cart.root });
         },
     });
 };
@@ -41,7 +42,7 @@ export const useUpdateCartItem = () => {
         mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) =>
             updateCartItemApi(itemId, quantity),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: cartKeys.cart });
+            queryClient.invalidateQueries({ queryKey: keys.cart.root });
         },
     });
 };
@@ -51,7 +52,7 @@ export const useRemoveCartItem = () => {
     return useMutation({
         mutationFn: (itemId: string) => removeCartItemApi(itemId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: cartKeys.cart });
+            queryClient.invalidateQueries({ queryKey: keys.cart.root });
         },
     });
 };
@@ -61,7 +62,7 @@ export const useClearCart = () => {
     return useMutation({
         mutationFn: clearCartApi,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: cartKeys.cart });
+            queryClient.invalidateQueries({ queryKey: keys.cart.root });
         },
     });
 };

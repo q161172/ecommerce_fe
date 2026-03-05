@@ -3,7 +3,7 @@ import { ShoppingBag, User, LogOut, LayoutDashboard, Menu, X } from 'lucide-reac
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
-import { useLogout } from '@/api/auth/auth.hooks';
+import { useLogout } from '@/hooks';
 import toast from 'react-hot-toast';
 
 export default function Navbar() {
@@ -66,22 +66,24 @@ export default function Navbar() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-3">
-                        {/* Cart */}
-                        <button
-                            onClick={toggleCart}
-                            className="relative p-2 transition-opacity hover:opacity-60"
-                            style={{ color: 'var(--color-brown)' }}
-                        >
-                            <ShoppingBag size={20} />
-                            {totalItems() > 0 && (
-                                <span
-                                    className="absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center text-[10px] font-medium rounded-full"
-                                    style={{ background: 'var(--color-gold)', color: 'white' }}
-                                >
-                                    {totalItems()}
-                                </span>
-                            )}
-                        </button>
+                        {/* Cart — only shown when logged in */}
+                        {isAuthenticated && (
+                            <button
+                                onClick={toggleCart}
+                                className="relative p-2 transition-opacity hover:opacity-60"
+                                style={{ color: 'var(--color-brown)' }}
+                            >
+                                <ShoppingBag size={20} />
+                                {totalItems() > 0 && (
+                                    <span
+                                        className="absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center text-[10px] font-medium rounded-full"
+                                        style={{ background: 'var(--color-gold)', color: 'white' }}
+                                    >
+                                        {totalItems()}
+                                    </span>
+                                )}
+                            </button>
+                        )}
 
                         {/* User */}
                         {isAuthenticated ? (

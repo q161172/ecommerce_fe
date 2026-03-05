@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAdminStats } from '@/api/admin/admin.hooks';
+import { useAdminStats } from '@/hooks';
 import {
     Card,
     CardContent,

@@ -31,8 +31,11 @@ export const useAuthStore = create<AuthState>()(
             setAccessToken: (accessToken) =>
                 set({ accessToken }),
 
-            logout: () =>
-                set({ user: null, accessToken: null, isAuthenticated: false }),
+            logout: () => {
+                set({ user: null, accessToken: null, isAuthenticated: false });
+                // Clear persisted cart so it doesn't show after logout
+                localStorage.removeItem('cart-storage');
+            },
         }),
         {
             name: 'auth-storage',

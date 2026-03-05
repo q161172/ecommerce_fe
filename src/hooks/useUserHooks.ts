@@ -8,17 +8,13 @@ import {
     getUsersApi,
     toggleUserActiveApi,
     changeUserRoleApi,
-} from './users.api';
-import type { UpdateProfileDto, AddressDto, UsersListParams } from './users.types';
-
-export const userKeys = {
-    profile: ['users', 'me'] as const,
-    list: (params: UsersListParams) => ['users', 'list', params] as const,
-};
+} from '@/api/users/users.api';
+import type { UpdateProfileDto, AddressDto, UsersListParams } from '@/api/users/users.types';
+import { keys } from './keys';
 
 export const useProfile = () =>
     useQuery({
-        queryKey: userKeys.profile,
+        queryKey: keys.users.profile,
         queryFn: getProfileApi,
     });
 
@@ -27,7 +23,7 @@ export const useUpdateProfile = () => {
     return useMutation({
         mutationFn: (dto: UpdateProfileDto) => updateProfileApi(dto),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: userKeys.profile });
+            queryClient.invalidateQueries({ queryKey: keys.users.profile });
         },
     });
 };
@@ -37,7 +33,7 @@ export const useAddAddress = () => {
     return useMutation({
         mutationFn: (dto: AddressDto) => addAddressApi(dto),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: userKeys.profile });
+            queryClient.invalidateQueries({ queryKey: keys.users.profile });
         },
     });
 };
@@ -48,7 +44,7 @@ export const useUpdateAddress = () => {
         mutationFn: ({ id, dto }: { id: string; dto: Partial<AddressDto> }) =>
             updateAddressApi(id, dto),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: userKeys.profile });
+            queryClient.invalidateQueries({ queryKey: keys.users.profile });
         },
     });
 };
@@ -58,7 +54,7 @@ export const useDeleteAddress = () => {
     return useMutation({
         mutationFn: (id: string) => deleteAddressApi(id),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: userKeys.profile });
+            queryClient.invalidateQueries({ queryKey: keys.users.profile });
         },
     });
 };
@@ -66,7 +62,7 @@ export const useDeleteAddress = () => {
 // ─── Admin hooks ─────────────────────────────────────────────────────────────
 export const useUsers = (params: UsersListParams = {}) =>
     useQuery({
-        queryKey: userKeys.list(params),
+        queryKey: keys.users.list(params),
         queryFn: () => getUsersApi(params),
     });
 
@@ -75,7 +71,7 @@ export const useToggleUserActive = () => {
     return useMutation({
         mutationFn: (id: string) => toggleUserActiveApi(id),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+            queryClient.invalidateQueries({ queryKey: keys.users.all });
         },
     });
 };
@@ -86,7 +82,7 @@ export const useChangeUserRole = () => {
         mutationFn: ({ id, role }: { id: string; role: 'ADMIN' | 'CUSTOMER' }) =>
             changeUserRoleApi(id, role),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+            queryClient.invalidateQueries({ queryKey: keys.users.all });
         },
     });
 };

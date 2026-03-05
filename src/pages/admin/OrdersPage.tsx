@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAllOrders, useUpdateOrderStatus } from '@/api/orders/orders.hooks';
+import { useAllOrders, useUpdateOrderStatus } from '@/hooks';
 import {
     Table,
     TableBody,
