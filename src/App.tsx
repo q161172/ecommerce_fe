@@ -28,7 +28,7 @@ const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
 const GoogleCallbackPage = lazy(() => import('@/pages/auth/GoogleCallbackPage'));
 
-// Admin pages
+// Admin pages — lazy load (chunk riêng, tải khi vào admin lần đầu)
 const AdminDashboard = lazy(() => import('@/pages/admin/DashboardPage'));
 const AdminProducts = lazy(() => import('@/pages/admin/ProductsPage'));
 const AdminCategories = lazy(() => import('@/pages/admin/CategoriesPage'));
@@ -39,7 +39,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      staleTime: 60 * 1000, // 1 minute
+      staleTime: 5 * 60 * 1000, // 5 phút — giữ cache lâu hơn, không refetch mỗi lần navigate
     },
   },
 });

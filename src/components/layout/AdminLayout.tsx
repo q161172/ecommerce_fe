@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, Tag, ShoppingBag, Users, LogOut, ExternalLink } from 'lucide-react';
 import { useLogout } from '@/hooks';
+import { Suspense, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 const navItems = [
@@ -15,6 +16,19 @@ export default function AdminLayout() {
     const navigate = useNavigate();
     const logoutMutation = useLogout();
 
+    // Khoá scroll document khi ở admin
+    // (html + body đều phải set vì browser dùng cái nào tùy)
+    useEffect(() => {
+        const html = document.documentElement;
+        const body = document.body;
+        html.style.overflow = 'hidden';
+        body.style.overflow = 'hidden';
+        return () => {
+            html.style.overflow = '';
+            body.style.overflow = '';
+        };
+    }, []);
+
     const handleLogout = async () => {
         await logoutMutation.mutateAsync();
         toast.success('Logged out');
@@ -22,7 +36,7 @@ export default function AdminLayout() {
     };
 
     return (
-        <div className="flex min-h-screen" style={{ backgroundColor: '#F8F5F0' }}>
+        <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#F8F5F0' }}>
             {/* Sidebar */}
             <aside className="w-64 flex-shrink-0 flex flex-col" style={{ background: 'var(--color-white)', borderRight: '1px solid #EDE7D9' }}>
                 {/* Logo */}
@@ -65,7 +79,14 @@ export default function AdminLayout() {
                     <h2 className="text-sm tracking-widest uppercase font-medium" style={{ color: 'var(--color-stone)' }}>Admin Panel</h2>
                 </header>
                 <main className="flex-1 overflow-auto p-8">
-                    <Outlet />
+                    <Suspense fallback={
+                        <div className="flex items-center justify-center h-full">
+                            <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
+                                style={{ borderColor: 'var(--color-gold)', borderTopColor: 'transparent' }} />
+                        </div>
+                    }>
+                        <Outlet />
+                    </Suspense>
                 </main>
             </div>
         </div>

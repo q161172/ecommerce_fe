@@ -1,10 +1,8 @@
-import { useState, useRef } from 'react';
-import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from '@/hooks';
-import { useCategories } from '@/hooks';
+import { useState, useMemo, useRef } from 'react';
+import { type ColumnDef } from '@tanstack/react-table';
+import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useCategories } from '@/hooks';
 import type { Product } from '@/types';
-import {
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
+import { DataTableCSR } from '@/components/data-table/data-table-CSR/data-table-CSR';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -12,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Search, Upload, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -34,10 +32,7 @@ const EMPTY_FORM: FormState = {
 
 // ─── Product Form ─────────────────────────────────────────────────────────────
 function ProductForm({
-    initial,
-    onSubmit,
-    isPending,
-    onClose,
+    initial, onSubmit, isPending, onClose,
 }: {
     initial?: Product;
     onSubmit: (formData: FormData) => Promise<void>;
@@ -127,18 +122,15 @@ function ProductForm({
                 <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
             </div>
 
-            {/* Name */}
             <div className="grid gap-1.5">
                 <Label htmlFor="p-name">Name *</Label>
                 <Input id="p-name" value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Classic Wool Coat" required />
             </div>
 
-            {/* Description */}
             <div className="grid gap-1.5">
                 <Label htmlFor="p-desc">Description</Label>
                 <textarea
-                    id="p-desc"
-                    rows={3}
+                    id="p-desc" rows={3}
                     value={form.description}
                     onChange={e => set('description', e.target.value)}
                     placeholder="Product description..."
@@ -146,7 +138,6 @@ function ProductForm({
                 />
             </div>
 
-            {/* Price row */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-1.5">
                     <Label htmlFor="p-price">Price * (₫)</Label>
@@ -158,7 +149,6 @@ function ProductForm({
                 </div>
             </div>
 
-            {/* Category */}
             <div className="grid gap-1.5">
                 <Label>Category *</Label>
                 <select
@@ -172,7 +162,6 @@ function ProductForm({
                 </select>
             </div>
 
-            {/* Featured */}
             <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                     type="checkbox"
@@ -183,21 +172,9 @@ function ProductForm({
                 <span className="text-sm font-medium text-gray-700">Mark as Featured</span>
             </label>
 
-            {/* Actions */}
             <div className="flex gap-2 pt-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1 hover:bg-gray-100 active:scale-95 transition-all"
-                    onClick={onClose}
-                >
-                    Cancel
-                </Button>
-                <Button
-                    type="submit"
-                    className="flex-1 bg-gray-900 hover:bg-gray-700 active:scale-95 transition-all text-white"
-                    disabled={isPending}
-                >
+                <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
+                <Button type="submit" className="flex-1 bg-gray-900 hover:bg-gray-700 text-white" disabled={isPending}>
                     {isPending ? 'Saving...' : initial ? 'Update Product' : 'Create Product'}
                 </Button>
             </div>
@@ -207,22 +184,20 @@ function ProductForm({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AdminProductsPage() {
-    const [search, setSearch] = useState('');
-    const [page, setPage] = useState(1);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<Product | null>(null);
 
-    const { data, isLoading } = useProducts({ page, limit: 10, search: search || undefined });
+    // Fetch all products (no server pagination) — DataTableCSR handles local search + pagination
+    const { data, isLoading, refetch } = useProducts({ limit: 999 });
+    const products = data?.products ?? [];
+
     const createMutation = useCreateProduct();
     const updateMutation = useUpdateProduct();
     const deleteMutation = useDeleteProduct();
 
     const handleCreate = async (formData: FormData) => {
         await createMutation.mutateAsync(formData, {
-            onSuccess: () => {
-                toast.success('Product created!');
-                setIsAddOpen(false);
-            },
+            onSuccess: () => { toast.success('Product created!'); setIsAddOpen(false); },
             onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create product'),
         });
     };
@@ -230,10 +205,7 @@ export default function AdminProductsPage() {
     const handleUpdate = async (formData: FormData) => {
         if (!editTarget) return;
         await updateMutation.mutateAsync({ id: editTarget.id, formData }, {
-            onSuccess: () => {
-                toast.success('Product updated!');
-                setEditTarget(null);
-            },
+            onSuccess: () => { toast.success('Product updated!'); setEditTarget(null); },
             onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update product'),
         });
     };
@@ -247,41 +219,111 @@ export default function AdminProductsPage() {
         }
     };
 
-    return (
-        <div className="p-8 space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Products</h2>
-                    <p className="text-muted-foreground">Manage your product catalog.</p>
+    // ─── Column definitions ──────────────────────────────────────────────────
+    const columns = useMemo<ColumnDef<Product>[]>(() => [
+        {
+            id: 'image',
+            header: 'Image',
+            enableSorting: false,
+            cell: ({ row }) => (
+                <div className="w-10 h-10 rounded overflow-hidden bg-gray-100">
+                    {row.original.images?.[0]
+                        ? <img src={row.original.images[0]} alt="" className="w-full h-full object-cover" />
+                        : <span className="flex items-center justify-center h-full text-xs text-gray-400">—</span>
+                    }
                 </div>
-                <Button
-                    className="gap-2 bg-gray-900 hover:bg-gray-700 active:scale-95 transition-all text-white"
-                    onClick={() => setIsAddOpen(true)}
-                >
-                    <Plus className="w-4 h-4" /> Add Product
-                </Button>
-            </div>
+            ),
+        },
+        {
+            accessorKey: 'name',
+            header: 'Name',
+            cell: ({ row }) => (
+                <div>
+                    <div className="font-medium">{row.original.name}</div>
+                    {row.original.isFeatured && <span className="text-xs text-amber-600">★ Featured</span>}
+                </div>
+            ),
+        },
+        {
+            id: 'category',
+            header: 'Category',
+            accessorFn: (row) => row.category?.name ?? '',
+            cell: ({ row }) => <span className="text-gray-500">{row.original.category?.name}</span>,
+        },
+        {
+            accessorKey: 'price',
+            header: 'Price',
+            cell: ({ row }) => (
+                <div>
+                    <div>{Number(row.original.price).toLocaleString('vi-VN')}₫</div>
+                    {row.original.comparePrice && (
+                        <div className="text-xs text-gray-400 line-through">
+                            {Number(row.original.comparePrice).toLocaleString('vi-VN')}₫
+                        </div>
+                    )}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'isActive',
+            header: 'Status',
+            cell: ({ row }) => (
+                <Badge variant={row.original.isActive ? 'default' : 'destructive'}>
+                    {row.original.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+            ),
+        },
+        {
+            id: 'actions',
+            header: () => <div className="text-right">Actions</div>,
+            enableSorting: false,
+            cell: ({ row }) => (
+                <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => setEditTarget(row.original)}>
+                        <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        variant="ghost" size="icon"
+                        className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                        onClick={() => handleDelete(row.original)}
+                        disabled={deleteMutation.isPending}
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ], [deleteMutation.isPending]);
+
+    return (
+        <div className="space-y-6">
+            <DataTableCSR
+                columns={columns}
+                data={products}
+                isLoading={isLoading}
+                onReload={() => refetch()}
+                titleTable="Products"
+                descripTable="Manage your product catalog."
+                searchPlaceholder="Search products..."
+                customActions={
+                    <Button className="gap-2 bg-gray-900 hover:bg-gray-700 text-white" onClick={() => setIsAddOpen(true)}>
+                        <Plus className="w-4 h-4" /> Add Product
+                    </Button>
+                }
+            />
 
             {/* Add Dialog */}
-            <Dialog open={isAddOpen} onOpenChange={open => { if (!open) setIsAddOpen(false); }}>
+            <Dialog open={isAddOpen} onOpenChange={(open) => { if (!open) setIsAddOpen(false); }}>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Add New Product</DialogTitle>
-                    </DialogHeader>
-                    <ProductForm
-                        onSubmit={handleCreate}
-                        isPending={createMutation.isPending}
-                        onClose={() => setIsAddOpen(false)}
-                    />
+                    <DialogHeader><DialogTitle>Add New Product</DialogTitle></DialogHeader>
+                    <ProductForm onSubmit={handleCreate} isPending={createMutation.isPending} onClose={() => setIsAddOpen(false)} />
                 </DialogContent>
             </Dialog>
 
             {/* Edit Dialog */}
-            <Dialog open={!!editTarget} onOpenChange={open => { if (!open) setEditTarget(null); }}>
+            <Dialog open={!!editTarget} onOpenChange={(open) => { if (!open) setEditTarget(null); }}>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Edit "{editTarget?.name}"</DialogTitle>
-                    </DialogHeader>
+                    <DialogHeader><DialogTitle>Edit "{editTarget?.name}"</DialogTitle></DialogHeader>
                     {editTarget && (
                         <ProductForm
                             key={editTarget.id}
@@ -293,114 +335,6 @@ export default function AdminProductsPage() {
                     )}
                 </DialogContent>
             </Dialog>
-
-            {/* Search */}
-            <div className="relative max-w-sm">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <Input
-                    placeholder="Search products..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="pl-9"
-                />
-            </div>
-
-            {/* Table */}
-            <div className="border rounded-md">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-16">Image</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
-                        ) : !data?.products?.length ? (
-                            <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No products found</TableCell></TableRow>
-                        ) : (
-                            data.products.map(product => (
-                                <TableRow key={product.id} className="hover:bg-gray-50 transition-colors">
-                                    <TableCell>
-                                        <div className="w-10 h-10 rounded overflow-hidden bg-gray-100">
-                                            {product.images?.[0]
-                                                ? <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
-                                                : <span className="flex items-center justify-center h-full text-xs text-gray-400">—</span>
-                                            }
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                        <div>{product.name}</div>
-                                        {product.isFeatured && <span className="text-xs text-amber-600">★ Featured</span>}
-                                    </TableCell>
-                                    <TableCell className="text-gray-500">{product.category?.name}</TableCell>
-                                    <TableCell>
-                                        <div>{Number(product.price).toLocaleString('vi-VN')}₫</div>
-                                        {product.comparePrice && (
-                                            <div className="text-xs text-gray-400 line-through">{Number(product.comparePrice).toLocaleString('vi-VN')}₫</div>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={product.isActive ? 'default' : 'destructive'}>
-                                            {product.isActive ? 'Active' : 'Inactive'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            title="Edit"
-                                            className="hover:bg-gray-100 active:scale-90 transition-all"
-                                            onClick={() => setEditTarget(product)}
-                                        >
-                                            <Pencil className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-red-500 hover:bg-red-50 hover:text-red-600 active:scale-90 transition-all"
-                                            onClick={() => handleDelete(product)}
-                                            disabled={deleteMutation.isPending}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-
-            {/* Pagination */}
-            {data && data.totalPages > 1 && (
-                <div className="flex items-center justify-end gap-2 mt-4">
-                    <span className="text-sm text-gray-500 mr-2">Page {page} / {data.totalPages}</span>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="hover:bg-gray-100 active:scale-90 transition-all disabled:opacity-40"
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="hover:bg-gray-100 active:scale-90 transition-all disabled:opacity-40"
-                        onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                        disabled={page === data.totalPages}
-                    >
-                        <ChevronRight className="w-4 h-4" />
-                    </Button>
-                </div>
-            )}
         </div>
     );
 }
