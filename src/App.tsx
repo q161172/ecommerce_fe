@@ -27,6 +27,9 @@ const AccountPage = lazy(() => import('@/pages/account/AccountPage'));
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
 const GoogleCallbackPage = lazy(() => import('@/pages/auth/GoogleCallbackPage'));
+const SizeGuidePage = lazy(() => import('@/pages/SizeGuidePage'));
+const ShippingPage = lazy(() => import('@/pages/ShippingPage'));
+const ContactPage = lazy(() => import('@/pages/ContactPage'));
 
 // Admin pages — lazy load (chunk riêng, tải khi vào admin lần đầu)
 const AdminDashboard = lazy(() => import('@/pages/admin/DashboardPage'));
@@ -78,6 +81,9 @@ export default function App() {
               <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
               <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+              <Route path="/size-guide" element={<SizeGuidePage />} />
+              <Route path="/shipping" element={<ShippingPage />} />
+              <Route path="/contact" element={<ContactPage />} />
             </Route>
 
             {/* Auth routes (no layout) */}

@@ -23,26 +23,23 @@ export default function Footer() {
                         </div>
                     </div>
 
-                    {/* Links */}
+                    {/* Links — Shop */}
                     <div>
                         <h3 className="text-xs tracking-widest uppercase font-medium mb-4" style={{ color: 'var(--color-gold)' }}>Shop</h3>
                         <ul className="space-y-2">
-                            {['New Arrivals', 'Collection', 'Sale'].map((item) => (
-                                <li key={item}>
-                                    <Link to="/shop" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>{item}</Link>
-                                </li>
-                            ))}
+                            <li><Link to="/shop" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>New Arrivals</Link></li>
+                            <li><Link to="/shop" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>Collection</Link></li>
+                            <li><Link to="/shop" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>Sale</Link></li>
                         </ul>
                     </div>
 
+                    {/* Links — Help */}
                     <div>
                         <h3 className="text-xs tracking-widest uppercase font-medium mb-4" style={{ color: 'var(--color-gold)' }}>Help</h3>
                         <ul className="space-y-2">
-                            {['Size Guide', 'Shipping & Returns', 'Contact'].map((item) => (
-                                <li key={item}>
-                                    <a href="#" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>{item}</a>
-                                </li>
-                            ))}
+                            <li><Link to="/size-guide" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>Size Guide</Link></li>
+                            <li><Link to="/shipping" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>Shipping & Returns</Link></li>
+                            <li><Link to="/contact" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>Contact</Link></li>
                         </ul>
                     </div>
                 </div>
