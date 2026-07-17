@@ -14,6 +14,11 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
     oauth_failed: 'Google sign in failed',
 };
 
+// The one-time oauth_code is single-use. React StrictMode (dev) runs effects
+// twice, so guard at module scope to ensure each code is exchanged only once
+// (otherwise the 2nd call hits "Invalid or expired OAuth code").
+const handledCodes = new Set<string>();
+
 export default function GoogleCallbackPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -32,6 +37,9 @@ export default function GoogleCallbackPage() {
             navigate('/login');
             return;
         }
+
+        if (handledCodes.has(oauthCode)) return;
+        handledCodes.add(oauthCode);
 
         exchangeGoogleOAuthApi(oauthCode)
             .then((result) => {
