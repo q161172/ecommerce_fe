@@ -25,25 +25,33 @@ export default function LandingPage() {
 
                 <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-32">
                     <div className="max-w-2xl">
-                        <span className="section-tag">New Collection 2026</span>
-                        <h1 className="text-6xl md:text-8xl font-thin leading-none" style={{ color: '#F5F0E8', fontFamily: 'Cormorant Garamond, serif', letterSpacing: '-0.02em' }}>
-                            Refined
-                            <br />
-                            <span style={{ color: 'var(--color-gold)', fontStyle: 'italic' }}>Elegance</span>
-                        </h1>
-                        <p className="mt-8 text-base font-light leading-relaxed max-w-md" style={{ color: 'rgba(245,240,232,0.7)' }}>
-                            Timeless pieces crafted for those who know that true luxury lies in quality, not excess.
-                        </p>
-                        <div className="flex items-center gap-4 mt-10">
-                            <Link to="/shop" className="btn-gold">
-                                Explore Collection
-                                <ArrowRight size={16} />
-                            </Link>
-                            <Link to="/shop?featured=true" className="text-xs tracking-widest uppercase hover:opacity-70 flex items-center gap-2" style={{ color: '#F5F0E8' }}>
-                                Featured Pieces
-                                <span style={{ color: 'var(--color-gold)' }}>→</span>
-                            </Link>
-                        </div>
+                        <Reveal delay={0}>
+                            <span className="section-tag">New Collection 2026</span>
+                        </Reveal>
+                        <Reveal delay={120}>
+                            <h1 className="text-6xl md:text-8xl font-thin leading-none" style={{ color: '#F5F0E8', fontFamily: 'Cormorant Garamond, serif', letterSpacing: '-0.02em' }}>
+                                Refined
+                                <br />
+                                <span style={{ color: 'var(--color-gold)', fontStyle: 'italic' }}>Elegance</span>
+                            </h1>
+                        </Reveal>
+                        <Reveal delay={260}>
+                            <p className="mt-8 text-base font-light leading-relaxed max-w-md" style={{ color: 'rgba(245,240,232,0.7)' }}>
+                                Timeless pieces crafted for those who know that true luxury lies in quality, not excess.
+                            </p>
+                        </Reveal>
+                        <Reveal delay={400}>
+                            <div className="flex items-center gap-4 mt-10">
+                                <Link to="/shop" className="btn-gold">
+                                    Explore Collection
+                                    <ArrowRight size={16} />
+                                </Link>
+                                <Link to="/shop?featured=true" className="text-xs tracking-widest uppercase hover:opacity-70 flex items-center gap-2" style={{ color: '#F5F0E8' }}>
+                                    Featured Pieces
+                                    <span style={{ color: 'var(--color-gold)' }}>→</span>
+                                </Link>
+                            </div>
+                        </Reveal>
                     </div>
                 </div>
 
