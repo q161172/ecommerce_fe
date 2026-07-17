@@ -31,7 +31,14 @@ export const getAllOrdersApi = async (
     if (params.limit) query.append('limit', String(params.limit));
     if (params.status) query.append('status', params.status);
     const { data } = await apiClient.get(`/orders?${query}`);
-    return data;
+    // API returns the list under `orders`; normalize to the `data` contract.
+    return {
+        data: data.orders ?? data.data ?? [],
+        total: data.total ?? 0,
+        page: data.page ?? params.page ?? 1,
+        limit: data.limit ?? params.limit ?? 20,
+        totalPages: data.totalPages ?? 1,
+    };
 };
 
 export const updateOrderStatusApi = async (id: string, status: string): Promise<Order> => {

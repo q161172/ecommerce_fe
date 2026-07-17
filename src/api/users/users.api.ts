@@ -45,7 +45,14 @@ export const getUsersApi = async (params: UsersListParams = {}): Promise<UsersLi
     if (params.limit) query.append('limit', String(params.limit));
     if (params.search) query.append('search', params.search);
     const { data } = await apiClient.get(`/users?${query}`);
-    return data;
+    // API returns the list under `users`; normalize to the `data` contract.
+    return {
+        data: data.users ?? data.data ?? [],
+        total: data.total ?? 0,
+        page: data.page ?? params.page ?? 1,
+        limit: data.limit ?? params.limit ?? 15,
+        totalPages: data.totalPages ?? 1,
+    };
 };
 
 export const toggleUserActiveApi = async (id: string): Promise<UserItem> => {
