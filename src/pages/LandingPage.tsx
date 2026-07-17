@@ -3,10 +3,11 @@ import { useProducts } from '@/hooks';
 import { ArrowRight, Star } from 'lucide-react';
 import ProductCard from '@/components/product/ProductCard';
 import Reveal from '@/components/common/Reveal';
+import { ProductGridSkeleton } from '@/components/common/Skeleton';
 
 export default function LandingPage() {
-    const { data: featured } = useProducts({ featured: true, limit: 4 });
-    const { data: newArrivals } = useProducts({ sort: 'newest', limit: 8 });
+    const { data: featured, isLoading: featuredLoading } = useProducts({ featured: true, limit: 4 });
+    const { data: newArrivals, isLoading: newArrivalsLoading } = useProducts({ sort: 'newest', limit: 8 });
 
     return (
         <div className="pt-16">
@@ -82,7 +83,7 @@ export default function LandingPage() {
             </section>
 
             {/* Featured Products */}
-            {featured && featured.products && featured.products.length > 0 && (
+            {(featuredLoading || (featured?.products?.length ?? 0) > 0) && (
                 <section className="py-24" style={{ background: 'var(--color-cream)' }}>
                     <div className="max-w-7xl mx-auto px-6 lg:px-8">
                         <Reveal className="text-center mb-14">
@@ -90,13 +91,17 @@ export default function LandingPage() {
                             <h2 className="section-title">Featured Pieces</h2>
                             <div className="section-divider mx-auto" />
                         </Reveal>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                            {featured.products.map((product, i) => (
-                                <Reveal key={product.id} delay={(i % 4) * 90}>
-                                    <ProductCard product={product} />
-                                </Reveal>
-                            ))}
-                        </div>
+                        {featuredLoading ? (
+                            <ProductGridSkeleton count={4} className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" />
+                        ) : (
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                                {featured!.products.map((product, i) => (
+                                    <Reveal key={product.id} delay={(i % 4) * 90}>
+                                        <ProductCard product={product} />
+                                    </Reveal>
+                                ))}
+                            </div>
+                        )}
                         <div className="text-center mt-12">
                             <Link to="/shop?featured=true" className="btn-outline">
                                 View All Featured <ArrowRight size={14} />
@@ -119,7 +124,7 @@ export default function LandingPage() {
             </section>
 
             {/* New Arrivals */}
-            {newArrivals && newArrivals.products && newArrivals.products.length > 0 && (
+            {(newArrivalsLoading || (newArrivals?.products?.length ?? 0) > 0) && (
                 <section className="py-24" style={{ background: 'var(--color-cream)' }}>
                     <div className="max-w-7xl mx-auto px-6 lg:px-8">
                         <Reveal className="flex items-end justify-between mb-14">
@@ -131,13 +136,17 @@ export default function LandingPage() {
                                 See All <ArrowRight size={14} />
                             </Link>
                         </Reveal>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                            {newArrivals.products.slice(0, 8).map((product, i) => (
-                                <Reveal key={product.id} delay={(i % 4) * 90}>
-                                    <ProductCard product={product} />
-                                </Reveal>
-                            ))}
-                        </div>
+                        {newArrivalsLoading ? (
+                            <ProductGridSkeleton count={8} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" />
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                                {newArrivals!.products.slice(0, 8).map((product, i) => (
+                                    <Reveal key={product.id} delay={(i % 4) * 90}>
+                                        <ProductCard product={product} />
+                                    </Reveal>
+                                ))}
+                            </div>
+                        )}
                         <div className="text-center mt-8 md:hidden">
                             <Link to="/shop" className="btn-outline">See All Products</Link>
                         </div>

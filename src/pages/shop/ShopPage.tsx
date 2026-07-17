@@ -6,6 +6,7 @@ import type { Category } from '@/types';
 import ProductCard from '@/components/product/ProductCard';
 import Pagination from '@/components/common/Pagination';
 import PriceRangeSlider from '@/components/common/PriceRangeSlider';
+import { ProductGridSkeleton } from '@/components/common/Skeleton';
 
 const PAGE_SIZE = 12;
 
@@ -246,17 +247,10 @@ export default function ShopPage() {
 
                         {/* Grid */}
                         {isLoading ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                                {[...Array(PAGE_SIZE)].map((_, i) => (
-                                    <div key={i} className="card">
-                                        <div className="skeleton" style={{ aspectRatio: '3/4' }} />
-                                        <div className="p-4 space-y-2">
-                                            <div className="skeleton h-3 rounded w-3/4" />
-                                            <div className="skeleton h-4 rounded w-1/2" />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                            <ProductGridSkeleton
+                                count={PAGE_SIZE}
+                                className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6"
+                            />
                         ) : !data?.products?.length ? (
                             <div className="text-center py-24 border" style={{ borderColor: '#EDE7D9', background: 'var(--color-white)' }}>
                                 <p className="text-sm mb-4" style={{ color: 'var(--color-stone)' }}>No products found.</p>

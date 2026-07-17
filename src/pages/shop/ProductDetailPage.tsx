@@ -6,6 +6,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { Star, ShoppingBag, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { ProductDetailSkeleton } from '@/components/common/Skeleton';
 
 export default function ProductDetailPage() {
     const { slug } = useParams<{ slug: string }>();
@@ -24,18 +25,7 @@ export default function ProductDetailPage() {
     const addToCartMutation = useAddCartItem();
     // ───────────────────────────────────────────────────────────────────────
 
-    if (isLoading) return (
-        <div className="pt-24 min-h-screen" style={{ background: 'var(--color-cream)' }}>
-            <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    <div className="skeleton rounded-none" style={{ aspectRatio: '3/4' }} />
-                    <div className="space-y-4 pt-4">
-                        {[...Array(5)].map((_, i) => <div key={i} className="skeleton h-6 rounded" style={{ width: `${[80, 50, 60, 90, 40][i]}%` }} />)}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+    if (isLoading) return <ProductDetailSkeleton />;
 
     if (!product) return (
         <div className="pt-24 min-h-screen flex items-center justify-center" style={{ background: 'var(--color-cream)' }}>
