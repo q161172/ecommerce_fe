@@ -29,3 +29,19 @@ export const getMeApi = async (): Promise<AuthResponse['user']> => {
     const { data } = await apiClient.get('/auth/me');
     return data.data as AuthResponse['user'];
 };
+
+// Exchange the one-time ?oauth_code=... (from Google redirect) for a JWT session.
+export const exchangeGoogleOAuthApi = async (code: string): Promise<AuthResponse> => {
+    const { data } = await apiClient.post('/auth/google/exchange', { code });
+    const result = data.data as AuthResponse;
+    useAuthStore.getState().setAuth(result.user, result.accessToken);
+    return result;
+};
+
+// Google One Tap: send the GIS credential (id_token) → JWT session.
+export const googleOneTapApi = async (credential: string): Promise<AuthResponse> => {
+    const { data } = await apiClient.post('/auth/google/one-tap', { credential });
+    const result = data.data as AuthResponse;
+    useAuthStore.getState().setAuth(result.user, result.accessToken);
+    return result;
+};

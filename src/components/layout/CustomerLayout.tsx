@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
 import CartSidebar from '@/components/cart/CartSidebar';
 import Footer from '@/components/layout/Footer';
+import GoogleOneTap from '@/components/auth/GoogleOneTap';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { useCart } from '@/hooks';
@@ -28,10 +29,12 @@ function CartSync() {
 
 export default function CustomerLayout() {
     const { isOpen, closeCart } = useCartStore();
+    const { isAuthenticated } = useAuthStore();
 
     return (
         <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-cream)' }}>
             <CartSync />
+            {!isAuthenticated && <GoogleOneTap />}
             <Navbar />
             <main className="flex-1">
                 <Outlet />
