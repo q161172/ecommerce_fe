@@ -5,6 +5,7 @@ import { useProducts, useCategories } from '@/hooks';
 import type { Category } from '@/types';
 import ProductCard from '@/components/product/ProductCard';
 import Pagination from '@/components/common/Pagination';
+import PriceRangeSlider from '@/components/common/PriceRangeSlider';
 
 const PAGE_SIZE = 12;
 
@@ -15,13 +16,11 @@ const SORT_OPTIONS = [
     { value: 'price_desc', label: 'Price: High to Low' },
 ];
 
-// Price presets (VND). `min`/`max` map straight to the API's minPrice/maxPrice.
-const PRICE_RANGES = [
-    { id: 'lt500', label: 'Dưới 500.000₫', min: undefined, max: 500_000 },
-    { id: '500-1m', label: '500.000₫ – 1.000.000₫', min: 500_000, max: 1_000_000 },
-    { id: '1m-2m', label: '1.000.000₫ – 2.000.000₫', min: 1_000_000, max: 2_000_000 },
-    { id: 'gt2m', label: 'Trên 2.000.000₫', min: 2_000_000, max: undefined },
-];
+// Price slider bounds (VND). At the extremes we drop the param so it's "no filter".
+const PRICE_MIN = 100_000;
+const PRICE_MAX = 200_000_000;
+const PRICE_STEP = 100_000;
+const formatPrice = (n: number) => `${n.toLocaleString('vi-VN')}₫`;
 
 export default function ShopPage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -67,26 +66,23 @@ export default function ShopPage() {
     const setFilter = (key: string, value: string) =>
         setParams((p) => (value ? p.set(key, value) : p.delete(key)));
 
-    const setPriceRange = (rangeId: string) => {
-        const current = PRICE_RANGES.find(
-            (r) => String(r.min ?? '') === minPrice && String(r.max ?? '') === maxPrice,
-        );
-        const range = PRICE_RANGES.find((r) => r.id === rangeId);
+    const priceValue: [number, number] = [
+        minPrice ? Number(minPrice) : PRICE_MIN,
+        maxPrice ? Number(maxPrice) : PRICE_MAX,
+    ];
+    const priceActive = Boolean(minPrice || maxPrice);
+
+    const commitPrice = ([lo, hi]: [number, number]) => {
         setParams((p) => {
-            // Toggle off if the same range is clicked again.
-            if (current?.id === rangeId || !range) {
-                p.delete('minPrice');
-                p.delete('maxPrice');
-                return;
-            }
-            range.min ? p.set('minPrice', String(range.min)) : p.delete('minPrice');
-            range.max ? p.set('maxPrice', String(range.max)) : p.delete('maxPrice');
+            if (lo <= PRICE_MIN) p.delete('minPrice');
+            else p.set('minPrice', String(lo));
+            if (hi >= PRICE_MAX) p.delete('maxPrice');
+            else p.set('maxPrice', String(hi));
         });
     };
 
-    const activePriceId = PRICE_RANGES.find(
-        (r) => String(r.min ?? '') === minPrice && String(r.max ?? '') === maxPrice,
-    )?.id;
+    const clearPrice = () =>
+        setParams((p) => { p.delete('minPrice'); p.delete('maxPrice'); });
 
     const submitSearch = () => setFilter('search', search.trim());
 
@@ -136,18 +132,14 @@ export default function ShopPage() {
                 <h3 className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-brown)' }}>
                     Price
                 </h3>
-                <div className="flex flex-col gap-1">
-                    {PRICE_RANGES.map((r) => (
-                        <button
-                            key={r.id}
-                            onClick={() => setPriceRange(r.id)}
-                            className={`text-left text-sm py-1.5 transition-colors ${activePriceId === r.id ? 'font-medium' : ''}`}
-                            style={{ color: activePriceId === r.id ? 'var(--color-gold-dark)' : 'var(--color-stone)' }}
-                        >
-                            {r.label}
-                        </button>
-                    ))}
-                </div>
+                <PriceRangeSlider
+                    min={PRICE_MIN}
+                    max={PRICE_MAX}
+                    step={PRICE_STEP}
+                    value={priceValue}
+                    onCommit={commitPrice}
+                    formatValue={formatPrice}
+                />
             </div>
 
             {hasActiveFilters && (
@@ -230,7 +222,7 @@ export default function ShopPage() {
                         </div>
 
                         {/* Active filter chips */}
-                        {(activeCategory || activePriceId || featured) && (
+                        {(activeCategory || priceActive || featured) && (
                             <div className="flex flex-wrap items-center gap-2 mb-6">
                                 {featured && (
                                     <span className="badge-gold flex items-center gap-1">
@@ -244,10 +236,10 @@ export default function ShopPage() {
                                         <button onClick={() => setFilter('categoryId', '')}><X size={10} /></button>
                                     </span>
                                 )}
-                                {activePriceId && (
+                                {priceActive && (
                                     <span className="badge-gold flex items-center gap-1">
-                                        {PRICE_RANGES.find((r) => r.id === activePriceId)?.label}
-                                        <button onClick={() => setPriceRange(activePriceId)}><X size={10} /></button>
+                                        {formatPrice(priceValue[0])} – {formatPrice(priceValue[1])}
+                                        <button onClick={clearPrice}><X size={10} /></button>
                                     </span>
                                 )}
                             </div>
