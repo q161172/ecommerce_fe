@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useProducts } from '@/hooks';
 import { ArrowRight, Star } from 'lucide-react';
 import ProductCard from '@/components/product/ProductCard';
+import Reveal from '@/components/common/Reveal';
 
 export default function LandingPage() {
     const { data: featured } = useProducts({ featured: true, limit: 4 });
@@ -61,12 +62,12 @@ export default function LandingPage() {
                             { label: 'Premium Quality', desc: 'Carefully sourced materials from the finest ateliers worldwide.' },
                             { label: 'Timeless Design', desc: 'Pieces that transcend trends and remain relevant for decades.' },
                             { label: 'Conscious Craft', desc: 'Ethically made with attention to every stitch and detail.' },
-                        ].map(({ label, desc }) => (
-                            <div key={label} className="px-6">
+                        ].map(({ label, desc }, i) => (
+                            <Reveal key={label} delay={i * 120} className="px-6">
                                 <div className="section-divider mx-auto mb-6" />
                                 <h3 className="font-serif text-lg mb-3" style={{ color: 'var(--color-brown)' }}>{label}</h3>
                                 <p className="text-sm leading-relaxed" style={{ color: 'var(--color-stone)' }}>{desc}</p>
-                            </div>
+                            </Reveal>
                         ))}
                     </div>
                 </div>
@@ -76,14 +77,16 @@ export default function LandingPage() {
             {featured && featured.products && featured.products.length > 0 && (
                 <section className="py-24" style={{ background: 'var(--color-cream)' }}>
                     <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                        <div className="text-center mb-14">
+                        <Reveal className="text-center mb-14">
                             <span className="section-tag">Handpicked</span>
                             <h2 className="section-title">Featured Pieces</h2>
                             <div className="section-divider mx-auto" />
-                        </div>
+                        </Reveal>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                            {featured.products.map((product) => (
-                                <ProductCard key={product.id} product={product} />
+                            {featured.products.map((product, i) => (
+                                <Reveal key={product.id} delay={(i % 4) * 90}>
+                                    <ProductCard product={product} />
+                                </Reveal>
                             ))}
                         </div>
                         <div className="text-center mt-12">
@@ -111,7 +114,7 @@ export default function LandingPage() {
             {newArrivals && newArrivals.products && newArrivals.products.length > 0 && (
                 <section className="py-24" style={{ background: 'var(--color-cream)' }}>
                     <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                        <div className="flex items-end justify-between mb-14">
+                        <Reveal className="flex items-end justify-between mb-14">
                             <div>
                                 <span className="section-tag">Just In</span>
                                 <h2 className="section-title">New Arrivals</h2>
@@ -119,10 +122,12 @@ export default function LandingPage() {
                             <Link to="/shop?sort=newest" className="btn-outline text-xs hidden md:inline-flex">
                                 See All <ArrowRight size={14} />
                             </Link>
-                        </div>
+                        </Reveal>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                            {newArrivals.products.slice(0, 8).map((product) => (
-                                <ProductCard key={product.id} product={product} />
+                            {newArrivals.products.slice(0, 8).map((product, i) => (
+                                <Reveal key={product.id} delay={(i % 4) * 90}>
+                                    <ProductCard product={product} />
+                                </Reveal>
                             ))}
                         </div>
                         <div className="text-center mt-8 md:hidden">
@@ -135,27 +140,27 @@ export default function LandingPage() {
             {/* Testimonials */}
             <section className="py-24 border-t" style={{ borderColor: '#EDE7D9', background: 'var(--color-ivory)' }}>
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="text-center mb-14">
+                    <Reveal className="text-center mb-14">
                         <span className="section-tag">What Clients Say</span>
                         <h2 className="section-title">Testimonials</h2>
                         <div className="section-divider mx-auto" />
-                    </div>
+                    </Reveal>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {[
                             { name: 'Linh N.', text: 'Exceptional quality. The fabric feels luxurious and the fit is impeccable. Worth every penny.', rating: 5 },
                             { name: 'Minh T.', text: 'I have been shopping here for two years. The pieces are timeless and never go out of style.', rating: 5 },
                             { name: 'Thu H.', text: 'Fast shipping and beautifully packaged. The attention to detail is remarkable.', rating: 5 },
-                        ].map(({ name, text, rating }) => (
-                            <div key={name} className="card p-8">
+                        ].map(({ name, text, rating }, i) => (
+                            <Reveal key={name} delay={i * 120} className="card p-8">
                                 <div className="flex gap-1 mb-4">
-                                    {[...Array(rating)].map((_, i) => (
-                                        <Star key={i} size={14} fill="currentColor" style={{ color: 'var(--color-gold)' }} />
+                                    {[...Array(rating)].map((_, j) => (
+                                        <Star key={j} size={14} fill="currentColor" style={{ color: 'var(--color-gold)' }} />
                                     ))}
                                 </div>
                                 <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--color-charcoal-light)', fontStyle: 'italic' }}>"{text}"</p>
                                 <div className="h-px mb-4" style={{ background: '#EDE7D9' }} />
                                 <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-brown)' }}>{name}</p>
-                            </div>
+                            </Reveal>
                         ))}
                     </div>
                 </div>
