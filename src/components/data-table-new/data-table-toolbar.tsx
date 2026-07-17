@@ -2,21 +2,19 @@ import type { Table } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DataTableViewOptions } from "@/components/data-table/data-table-CSR/data-table-view-options";
+import { DataTableViewOptions } from "./data-table-view-options";
 import { X, RefreshCcw, FileDown, Trash2 } from "lucide-react";
-import { useCallback, useState } from "react";
-import _ from "lodash";
+import { useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
-  // Props mới
   isLoading?: boolean;
-  onReload?: () => void;
+  onReload?: () => void | Promise<unknown>;
   onPrint?: () => void;
   dataLength?: number;
   searchPlaceholder?: string;
   hiddenSearch?: boolean;
-  customActions?: React.ReactNode;
   // Filter toolbar
   filterToolbar?: React.ReactNode;
   // Delete multiple rows
@@ -32,29 +30,43 @@ export function DataTableToolbar<TData>({
   dataLength = 0,
   searchPlaceholder = "Tìm kiếm...",
   hiddenSearch = false,
-  customActions,
   filterToolbar,
   onDeleteMultiple,
   enableCheckbox = false,
 }: DataTableToolbarProps<TData>) {
   const [valueSearchInput, setValueSearchInput] = useState<string>("");
+  const [isReloading, setIsReloading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const isSpinning = Boolean(isLoading || isReloading);
   const isFiltered =
-    table.getState().columnFilters.length > 0 ||
-    !!table.getState().globalFilter;
-  
+    table.getState().columnFilters.length > 0 || !!table.getState().globalFilter;
+
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const selectedRowsCount = selectedRows.length;
 
-  const debouncedSearch = useCallback(
-    _.debounce((value) => {
-      table.setGlobalFilter(value);
-    }, 500),
-    []
-  );
+  const handleReload = () => {
+    if (!onReload || isReloading) return;
+    setIsReloading(true);
+    try {
+      const result = onReload();
+      if (result && typeof (result as PromiseLike<unknown>).then === "function") {
+        void Promise.resolve(result).finally(() => setIsReloading(false));
+        return;
+      }
+    } catch {
+      setIsReloading(false);
+      return;
+    }
+    setIsReloading(false);
+  };
 
   const handleSearchInput = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setValueSearchInput(event.target.value);
-    debouncedSearch(event.target.value);
+    const value = event.target.value;
+    setValueSearchInput(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      table.setGlobalFilter(value);
+    }, 500);
   };
 
   return (
@@ -84,12 +96,10 @@ export function DataTableToolbar<TData>({
             <X className="ml-2 h-4 w-4" />
           </Button>
         )}
-        {/* Filter Toolbar - truyền vào thì hiện */}
         {filterToolbar}
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Delete multiple button - chỉ hiện khi có checkbox và có hàng được chọn */}
         {enableCheckbox && onDeleteMultiple && selectedRowsCount > 0 && (
           <Button
             onClick={() => onDeleteMultiple(selectedRows)}
@@ -101,7 +111,6 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
 
-        {/* Print button */}
         {onPrint && (
           <Button
             variant="outline"
@@ -115,24 +124,20 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
 
-        {/* Reload button */}
         {onReload && (
           <Button
             variant="outline"
             size="icon"
-            onClick={onReload}
-            disabled={isLoading}
+            onClick={handleReload}
+            disabled={isSpinning}
             title="Tải lại dữ liệu"
             className="h-8 w-8"
           >
-            <RefreshCcw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCcw className={cn("h-4 w-4", isSpinning && "animate-spin")} />
           </Button>
         )}
 
         <DataTableViewOptions table={table} />
-
-        {/* Custom actions */}
-        {customActions}
       </div>
     </div>
   );

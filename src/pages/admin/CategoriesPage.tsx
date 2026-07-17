@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { type ColumnDef } from '@tanstack/react-table';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks';
 import type { CategoryItem } from '@/api/categories/categories.types';
-import { DataTableCSR } from '@/components/data-table/data-table-CSR/data-table-CSR';
+import { DataTable } from '@/components/data-table-new';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -202,7 +202,7 @@ export default function AdminCategoriesPage() {
 
     return (
         <div className="space-y-6">
-            <DataTableCSR
+            <DataTable
                 columns={columns}
                 data={categories}
                 isLoading={isLoading}

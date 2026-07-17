@@ -1,5 +1,12 @@
 import React, { useEffect, useRef } from "react";
-import type { ColumnDef, ColumnFiltersState, SortingState, VisibilityState } from "@tanstack/react-table";
+import type {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+  VisibilityState,
+  OnChangeFn,
+  PaginationState
+} from "@tanstack/react-table";
 import {
   flexRender,
   getCoreRowModel,
@@ -23,16 +30,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 import { DataTableToolbar } from "./data-table-toolbar";
-import { DataTablePagination } from "../data-table-pagination";
+import { DataTablePagination } from "./data-table-pagination";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   noResults?: React.ReactNode;
   onSelectedItems?: (rows: any) => void;
-  // Props mới 
+  // Common Props
   isLoading?: boolean;
-  onReload?: () => void;
+  onReload?: () => void | Promise<unknown>;
   onRowClick?: (data: TData) => void;
   searchPlaceholder?: string;
   hiddenSearch?: boolean;
@@ -42,12 +49,24 @@ interface DataTableProps<TData, TValue> {
   customActions?: React.ReactNode;
   className?: string;
   tableClassName?: string;
-  // Filter toolbar
   filterToolbar?: React.ReactNode;
-  // Checkbox selection
   enableCheckbox?: boolean;
-  // Delete multiple rows
   onDeleteMultiple?: (selectedRows: any[]) => void;
+  getRowProps?: (data: TData) => React.HTMLAttributes<HTMLTableRowElement>;
+  initialColumnVisibility?: VisibilityState;
+
+  // SSR (Manual) Props
+  totalItems?: number;
+  manualPagination?: boolean;
+  manualSorting?: boolean;
+  manualFiltering?: boolean;
+  pageCount?: number;
+  onPaginationChange?: OnChangeFn<PaginationState>;
+  onSortingChange?: OnChangeFn<SortingState>;
+  state?: any; // To override internal state for SSR
+  /** Truyền xuống DataTablePagination (vd: [10, 15, 20, 30]) */
+  pageSizeOptions?: number[];
+  meta?: any;
 }
 
 function TableSkeleton({ columns }: { columns: number }) {
@@ -62,7 +81,7 @@ function TableSkeleton({ columns }: { columns: number }) {
   );
 }
 
-export function DataTableCSR<TData, TValue>({
+export function DataTable<TData, TValue>({
   columns,
   data,
   noResults,
@@ -81,36 +100,46 @@ export function DataTableCSR<TData, TValue>({
   filterToolbar,
   enableCheckbox = false,
   onDeleteMultiple,
+  getRowProps,
+  initialColumnVisibility,
+
+  // SSR
+  totalItems,
+  manualPagination = false,
+  manualSorting = false,
+  manualFiltering = false,
+  pageCount,
+  onPaginationChange,
+  onSortingChange,
+  state: externalState,
+  pageSizeOptions,
+  meta,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(initialColumnVisibility ?? {});
   const [rowSelection, setRowSelection] = React.useState({});
+  const [pagination, setPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 20,
+  });
+
   const onSelectedItemsRef = useRef(onSelectedItems);
 
-  // Cập nhật ref khi onSelectedItems thay đổi
   useEffect(() => {
     onSelectedItemsRef.current = onSelectedItems;
   }, [onSelectedItems]);
 
-  // Tự động thêm checkbox column nếu enableCheckbox là true
   const columnsWithCheckbox = React.useMemo(() => {
     if (!enableCheckbox) return columns;
-
-    // Kiểm tra xem đã có checkbox column chưa
     const hasCheckboxColumn = columns.some((col) => col.id === "select");
     if (hasCheckboxColumn) return columns;
 
-    // Thêm checkbox column vào đầu
     const checkboxColumn: ColumnDef<TData, TValue> = {
       id: "select",
       header: ({ table }) => {
         const isAllSelected = table.getIsAllPageRowsSelected();
         const isSomeSelected = table.getIsSomePageRowsSelected();
-
         return (
           <div onClick={(e) => e.stopPropagation()}>
             <Checkbox
@@ -121,17 +150,15 @@ export function DataTableCSR<TData, TValue>({
           </div>
         );
       },
-      cell: ({ row }) => {
-        return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <Checkbox
-              checked={row.getIsSelected() || false}
-              onCheckedChange={(checked) => row.toggleSelected(!!checked)}
-              aria-label="Select row"
-            />
-          </div>
-        );
-      },
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={row.getIsSelected() || false}
+            onCheckedChange={(checked) => row.toggleSelected(!!checked)}
+            aria-label="Select row"
+          />
+        </div>
+      ),
       enableSorting: false,
       enableHiding: false,
     };
@@ -142,40 +169,65 @@ export function DataTableCSR<TData, TValue>({
   const table = useReactTable({
     data,
     columns: columnsWithCheckbox,
+    meta,
+    // Chỉ truyền pageCount khi phân trang server; client dùng getPaginationRowModel tự tính.
+    // Truyền -1 khi không manual làm getCanNextPage() sai → nút "Trang sau" vẫn bấm được dù chỉ 1 trang.
+    ...(manualPagination ? { pageCount: pageCount ?? -1 } : {}),
+    manualPagination,
+    manualSorting,
+    manualFiltering,
     state: {
       sorting,
       columnVisibility,
       rowSelection,
       columnFilters,
+      pagination,
+      ...externalState,
     },
     enableRowSelection: enableCheckbox || !!onSelectedItems,
     onRowSelectionChange: setRowSelection,
-    onSortingChange: setSorting,
+    onSortingChange: onSortingChange || setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: onPaginationChange || setPagination,
+
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
+    getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
+    getPaginationRowModel: manualPagination ? undefined : getPaginationRowModel(),
+    getSortedRowModel: (enableSorting && !manualSorting) ? getSortedRowModel() : undefined,
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
+
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+
+  useEffect(() => {
+    if (manualPagination) return;
+    setPagination((prev) => {
+      const totalPages = Math.max(
+        1,
+        Math.ceil(filteredRowCount / Math.max(1, prev.pageSize)),
+      );
+      const maxIndex = totalPages - 1;
+      if (prev.pageIndex > maxIndex) {
+        return { ...prev, pageIndex: maxIndex };
+      }
+      return prev;
+    });
+  }, [manualPagination, filteredRowCount, data, columnFilters, sorting]);
 
   useEffect(() => {
     if (onSelectedItemsRef.current) {
       const selectedRows = table.getFilteredSelectedRowModel().rows;
       onSelectedItemsRef.current(selectedRows);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table.getFilteredSelectedRowModel().rows.length]);
 
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-
-    const tableHtml = document.getElementById("data-table-csr")?.outerHTML;
+    const tableHtml = document.getElementById("data-table-unified")?.outerHTML;
     if (!tableHtml) return;
-
     const html = `
       <!DOCTYPE html>
       <html>
@@ -187,30 +239,14 @@ export function DataTableCSR<TData, TValue>({
             table { width: 100%; border-collapse: collapse; }
             th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
             th { background-color: #f2f2f2; font-weight: bold; }
-            .print-header { margin-bottom: 20px; }
-            .print-footer { margin-top: 20px; text-align: right; font-size: 12px; color: #666; }
-            @media print {
-              .no-print { display: none; }
-            }
           </style>
         </head>
         <body>
-          <div class="print-header">
-            <h2>${titleTable || "Báo cáo dữ liệu"}</h2>
-            <p>Ngày in: ${new Date().toLocaleDateString("vi-VN")} ${new Date().toLocaleTimeString("vi-VN")}</p>
-          </div>
+          <h2>${titleTable || "Báo cáo dữ liệu"}</h2>
           ${tableHtml}
-          <div class="print-footer">
-            <p>Trang 1</p>
-          </div>
-          <div class="no-print">
-            <button onclick="window.print()">In báo cáo</button>
-          </div>
         </body>
       </html>
     `;
-
-    printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
   };
@@ -240,24 +276,16 @@ export function DataTableCSR<TData, TValue>({
         enableCheckbox={enableCheckbox}
       />
 
-      {/* Table */}
-      <div className={cn("rounded-md border overflow-x-auto overflow-y-hidden", tableClassName)}>
-        <Table id="data-table-csr">
+      <div className={cn("rounded-md border overflow-x-auto", tableClassName)}>
+        <Table id="data-table-unified">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {!header.isPlaceholder && flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -267,33 +295,32 @@ export function DataTableCSR<TData, TValue>({
                 <TableSkeleton key={index} columns={columnsWithCheckbox.length} />
               ))
             ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row) => {
+                const rowProps = getRowProps?.(row.original) ?? {};
+                const { className: rowClassName, onClick: rowOnClick, ...restRowProps } = rowProps;
+                return (
                 <TableRow
                   key={row.id}
+                  {...restRowProps}
                   data-state={row.getIsSelected() && "selected"}
-                  className={cn(
-                    onRowClick && "cursor-pointer hover:bg-muted/50",
-                    row.getIsSelected() && "bg-muted/50"
-                  )}
-                  onClick={() => onRowClick?.(row.original)}
+                  className={cn(onRowClick && "cursor-pointer hover:bg-muted/50", rowClassName)}
+                  onClick={(event) => {
+                    rowOnClick?.(event);
+                    onRowClick?.(row.original);
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
-              ))
+                );
+              })
             ) : (
               <TableRow className="h-40">
-                <TableCell
-                  colSpan={columnsWithCheckbox.length}
-                  className="h-24 text-center"
-                >
-                  {noResults ? noResults : "No results."}
+                <TableCell colSpan={columnsWithCheckbox.length} className="h-24 text-center">
+                  {noResults ? noResults : "Không có dữ liệu."}
                 </TableCell>
               </TableRow>
             )}
@@ -301,7 +328,11 @@ export function DataTableCSR<TData, TValue>({
         </Table>
       </div>
 
-      <DataTablePagination table={table} />
+      <DataTablePagination
+        table={table}
+        totalItems={totalItems}
+        pageSizeOptions={pageSizeOptions}
+      />
     </div>
   );
 }

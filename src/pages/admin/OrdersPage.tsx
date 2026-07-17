@@ -1,13 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { type ColumnDef, type OnChangeFn, type PaginationState } from '@tanstack/react-table';
 import { useAllOrders, useUpdateOrderStatus } from '@/hooks';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import type { OrderStatus } from '@/types';
+import { DataTable } from '@/components/data-table-new';
 import {
     Dialog,
     DialogContent,
@@ -15,7 +10,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
     Select,
     SelectContent,
@@ -24,8 +18,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { format } from 'date-fns';
-import { Eye, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -36,96 +29,179 @@ const STATUS_COLORS: Record<string, string> = {
     CANCELLED: 'bg-red-500/10 text-red-600 border-red-500/20',
 };
 
+const STATUS_OPTIONS: OrderStatus[] = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+
+// The admin orders endpoint returns richer objects than the base Order type
+// (joined user + full address + expanded items), so describe them locally.
+interface AdminOrderItem {
+    id: string;
+    quantity: number;
+    price: number;
+    product: { name: string; images: string[] };
+    variant: { size: string; color: string };
+}
+
+interface AdminOrder {
+    id: string;
+    createdAt: string;
+    total: number;
+    subtotal?: number;
+    shippingFee?: number;
+    notes: string | null;
+    status: OrderStatus;
+    user: { name: string; email: string };
+    address: { fullName: string; phone: string; street: string; district: string; city: string };
+    items: AdminOrderItem[];
+}
+
 export default function AdminOrdersPage() {
     const [page, setPage] = useState(1);
-    const [search, setSearch] = useState('');
-    const [selectedOrder, setSelectedOrder] = useState<any>(null);
+    const [limit, setLimit] = useState(15);
+    const [statusFilter, setStatusFilter] = useState<OrderStatus | 'ALL'>('ALL');
+    const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
 
-    const { data, isLoading } = useAllOrders({ page, limit: 15 });
+    const { data, isLoading, refetch } = useAllOrders({
+        page,
+        limit,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+    });
+
+    const orders = (data?.data ?? []) as unknown as AdminOrder[];
+
     const updateStatusMutation = useUpdateOrderStatus();
 
-    return (
-        <div className="p-8 space-y-6">
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight">Orders</h2>
-                <p className="text-muted-foreground">Manage and track customer orders.</p>
-            </div>
+    const handlePaginationChange: OnChangeFn<PaginationState> = (updater) => {
+        const prev: PaginationState = { pageIndex: page - 1, pageSize: limit };
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        if (next.pageSize !== limit) {
+            setLimit(next.pageSize);
+            setPage(1);
+        } else {
+            setPage(next.pageIndex + 1);
+        }
+    };
 
-            <div className="flex items-center gap-2 max-w-sm">
-                <Search className="w-4 h-4 text-muted-foreground absolute ml-3" />
-                <Input
-                    placeholder="Search by order ID or email..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9"
-                />
-            </div>
-
-            <div className="border rounded-md">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Order ID</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Customer</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
-                        ) : data?.data?.length === 0 ? (
-                            <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No orders found</TableCell></TableRow>
-                        ) : (
-                            data?.data?.map((order: any) => (
-                                <TableRow key={order.id}>
-                                    <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}</TableCell>
-                                    <TableCell>{format(new Date(order.createdAt), 'MMM dd, yyyy')}</TableCell>
-                                    <TableCell>
-                                        <div>
-                                            <p className="font-medium">{order.user.name}</p>
-                                            <p className="text-xs text-muted-foreground">{order.user.email}</p>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="font-medium">{Number(order.total).toLocaleString('vi-VN')}₫</TableCell>
-                                    <TableCell>
-                                        <Select
-                                            defaultValue={order.status}
-                                            onValueChange={(val) => updateStatusMutation.mutate({ id: order.id, status: val })}
-                                            disabled={updateStatusMutation.isPending}
-                                        >
-                                            <SelectTrigger className={`w-[130px] h-8 text-xs font-medium border ${STATUS_COLORS[order.status]}`}>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="PENDING">Pending</SelectItem>
-                                                <SelectItem value="PROCESSING">Processing</SelectItem>
-                                                <SelectItem value="SHIPPED">Shipped</SelectItem>
-                                                <SelectItem value="DELIVERED">Delivered</SelectItem>
-                                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(order)}>
-                                            <Eye className="w-4 h-4" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-
-            {data && data.totalPages > 1 && (
-                <div className="flex justify-end gap-2 mt-4">
-                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
-                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(data.totalPages, p + 1))} disabled={page === data.totalPages}>Next</Button>
+    const columns = useMemo<ColumnDef<AdminOrder>[]>(() => [
+        {
+            id: 'id',
+            header: 'Order ID',
+            meta: { title: 'Order ID' },
+            cell: ({ row }) => <span className="font-mono text-xs">{row.original.id.slice(0, 8)}</span>,
+        },
+        {
+            accessorKey: 'createdAt',
+            header: 'Date',
+            meta: { title: 'Date' },
+            cell: ({ row }) => format(new Date(row.original.createdAt), 'MMM dd, yyyy'),
+        },
+        {
+            id: 'customer',
+            header: 'Customer',
+            accessorFn: (row) => row.user?.name ?? '',
+            meta: { title: 'Customer' },
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-medium">{row.original.user?.name}</p>
+                    <p className="text-xs text-muted-foreground">{row.original.user?.email}</p>
                 </div>
-            )}
+            ),
+        },
+        {
+            accessorKey: 'total',
+            header: 'Total',
+            meta: { title: 'Total' },
+            cell: ({ row }) => (
+                <span className="font-medium">{Number(row.original.total).toLocaleString('vi-VN')}₫</span>
+            ),
+        },
+        {
+            accessorKey: 'status',
+            header: 'Status',
+            meta: { title: 'Status' },
+            cell: ({ row }) => {
+                const order = row.original;
+                return (
+                    <Select
+                        defaultValue={order.status}
+                        onValueChange={(val) =>
+                            updateStatusMutation.mutate(
+                                { id: order.id, status: val },
+                                {
+                                    onSuccess: () => toast.success('Order status updated'),
+                                    onError: () => toast.error('Failed to update status'),
+                                },
+                            )}
+                        disabled={updateStatusMutation.isPending}
+                    >
+                        <SelectTrigger className={`w-[130px] h-8 text-xs font-medium border ${STATUS_COLORS[order.status]}`}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {STATUS_OPTIONS.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                    {s.charAt(0) + s.slice(1).toLowerCase()}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                );
+            },
+        },
+        {
+            id: 'actions',
+            header: () => <div className="text-right">Actions</div>,
+            enableSorting: false,
+            enableHiding: false,
+            cell: ({ row }) => (
+                <div className="flex justify-end">
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(row.original)}>
+                        <Eye className="w-4 h-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ], [updateStatusMutation]);
+
+    return (
+        <div className="p-8">
+            <DataTable
+                columns={columns}
+                data={orders}
+                isLoading={isLoading}
+                onReload={() => refetch()}
+                titleTable="Orders"
+                descripTable="Manage and track customer orders."
+                hiddenSearch
+                enableSorting={false}
+                manualPagination
+                pageCount={data?.totalPages ?? 1}
+                totalItems={data?.total ?? 0}
+                onPaginationChange={handlePaginationChange}
+                state={{ pagination: { pageIndex: page - 1, pageSize: limit } }}
+                pageSizeOptions={[10, 15, 20, 30, 50]}
+                noResults="No orders found"
+                filterToolbar={
+                    <Select
+                        value={statusFilter}
+                        onValueChange={(val) => {
+                            setStatusFilter(val as OrderStatus | 'ALL');
+                            setPage(1);
+                        }}
+                    >
+                        <SelectTrigger className="h-9 w-[160px]">
+                            <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">All statuses</SelectItem>
+                            {STATUS_OPTIONS.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                    {s.charAt(0) + s.slice(1).toLowerCase()}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                }
+            />
 
             <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
                 <DialogContent className="max-w-3xl">
@@ -158,10 +234,10 @@ export default function AdminOrdersPage() {
                             <div>
                                 <h4 className="font-medium text-sm mb-4 text-muted-foreground uppercase tracking-wider">Order Items</h4>
                                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-4">
-                                    {selectedOrder.items.map((item: any) => (
+                                    {selectedOrder.items.map((item) => (
                                         <div key={item.id} className="flex gap-4 items-center border-b pb-4 last:border-0">
                                             <div className="w-12 h-16 bg-muted rounded overflow-hidden">
-                                                {item.product.images[0] && <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />}
+                                                {item.product.images?.[0] && <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-medium text-sm truncate">{item.product.name}</p>
@@ -175,11 +251,20 @@ export default function AdminOrdersPage() {
                                 <div className="mt-6 pt-4 border-t space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Subtotal</span>
-                                        <span>{(selectedOrder.total - (selectedOrder.total >= 500000 ? 0 : 30000)).toLocaleString('vi-VN')}₫</span>
+                                        <span>
+                                            {Number(
+                                                selectedOrder.subtotal ??
+                                                selectedOrder.total - (selectedOrder.total >= 500000 ? 0 : 30000),
+                                            ).toLocaleString('vi-VN')}₫
+                                        </span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Shipping</span>
-                                        <span>{selectedOrder.total >= 500000 ? 'Free' : '30.000₫'}</span>
+                                        <span>
+                                            {(selectedOrder.shippingFee ?? (selectedOrder.total >= 500000 ? 0 : 30000)) === 0
+                                                ? 'Free'
+                                                : `${Number(selectedOrder.shippingFee ?? 30000).toLocaleString('vi-VN')}₫`}
+                                        </span>
                                     </div>
                                     <div className="flex justify-between font-bold pt-2 border-t">
                                         <span>Total</span>
