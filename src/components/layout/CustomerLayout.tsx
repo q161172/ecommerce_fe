@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
 import CartSidebar from '@/components/cart/CartSidebar';
 import Footer from '@/components/layout/Footer';
+import ScrollToTopButton from '@/components/common/ScrollToTopButton';
 import GoogleOneTap from '@/components/auth/GoogleOneTap';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
@@ -40,6 +41,8 @@ export default function CustomerLayout() {
                 <Outlet />
             </main>
             <Footer />
+
+            <ScrollToTopButton />
 
             {/* Cart Sidebar Overlay */}
             {isOpen && (
