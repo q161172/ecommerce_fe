@@ -37,6 +37,7 @@ export default function Footer() {
                     <div>
                         <h3 className="text-xs tracking-widest uppercase font-medium mb-4" style={{ color: 'var(--color-gold)' }}>Help</h3>
                         <ul className="space-y-2">
+                            <li><Link to="/about" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>Our Story</Link></li>
                             <li><Link to="/size-guide" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>Size Guide</Link></li>
                             <li><Link to="/shipping" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>Shipping & Returns</Link></li>
                             <li><Link to="/contact" className="text-sm hover:opacity-60 transition-opacity" style={{ color: 'var(--color-stone)' }}>Contact</Link></li>

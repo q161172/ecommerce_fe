@@ -52,6 +52,7 @@ export default function Navbar() {
                         {[
                             { to: '/', label: 'Home' },
                             { to: '/shop', label: 'Collection' },
+                            { to: '/about', label: 'About' },
                         ].map(({ to, label }) => (
                             <Link
                                 key={to}
@@ -141,6 +142,7 @@ export default function Navbar() {
                 <div className="lg:hidden px-6 py-4 border-t space-y-3" style={{ borderColor: '#EDE7D9', background: 'var(--color-cream)' }}>
                     <Link to="/" className="block text-xs tracking-widest uppercase" style={{ color: 'var(--color-charcoal)' }} onClick={() => setMobileOpen(false)}>Home</Link>
                     <Link to="/shop" className="block text-xs tracking-widest uppercase" style={{ color: 'var(--color-charcoal)' }} onClick={() => setMobileOpen(false)}>Collection</Link>
+                    <Link to="/about" className="block text-xs tracking-widest uppercase" style={{ color: 'var(--color-charcoal)' }} onClick={() => setMobileOpen(false)}>About</Link>
                 </div>
             )}
         </header>
