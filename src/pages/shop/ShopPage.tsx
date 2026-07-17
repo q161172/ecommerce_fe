@@ -138,7 +138,6 @@ export default function ShopPage() {
                     step={PRICE_STEP}
                     value={priceValue}
                     onCommit={commitPrice}
-                    formatValue={formatPrice}
                 />
             </div>
 
