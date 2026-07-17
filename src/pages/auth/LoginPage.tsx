@@ -21,7 +21,7 @@ export default function LoginPage() {
     const [showPass, setShowPass] = useState(false);
     const loginMutation = useLogin();
 
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+    const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
         resolver: zodResolver(schema),
     });
 
@@ -33,6 +33,17 @@ export default function LoginPage() {
         } catch (err: any) {
             toast.error(err?.response?.data?.message ?? 'Login failed');
         }
+    };
+
+    // Seeded accounts so anyone testing the app can sign in immediately.
+    const demoAccounts = [
+        { label: 'Admin', email: 'admin@maison.com', password: 'admin123' },
+        { label: 'Khách hàng', email: 'customer@maison.com', password: 'customer123' },
+    ];
+
+    const fillDemo = (email: string, password: string) => {
+        setValue('email', email, { shouldValidate: true });
+        setValue('password', password, { shouldValidate: true });
     };
 
     const handleGoogleLogin = () => {
@@ -90,6 +101,36 @@ export default function LoginPage() {
                         <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z" /><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z" /><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z" /><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z" /></svg>
                         Continue with Google
                     </button>
+
+                    {/* Demo accounts */}
+                    <div className="mt-6 pt-6" style={{ borderTop: '1px dashed #D4C9B5' }}>
+                        <p className="text-[10px] tracking-widest uppercase mb-3 text-center" style={{ color: 'var(--color-stone)' }}>
+                            Tài khoản demo
+                        </p>
+                        <div className="space-y-2">
+                            {demoAccounts.map((acc) => (
+                                <button
+                                    key={acc.email}
+                                    type="button"
+                                    onClick={() => fillDemo(acc.email, acc.password)}
+                                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left transition-all hover:bg-ivory border"
+                                    style={{ borderColor: '#EDE7D9' }}
+                                    title="Bấm để điền và đăng nhập"
+                                >
+                                    <span className="flex flex-col">
+                                        <span className="text-xs font-medium" style={{ color: 'var(--color-brown)' }}>{acc.label}</span>
+                                        <span className="text-[11px]" style={{ color: 'var(--color-stone)' }}>{acc.email}</span>
+                                    </span>
+                                    <span className="text-[11px] tracking-wide px-2 py-1" style={{ background: 'var(--color-cream)', color: 'var(--color-charcoal)' }}>
+                                        {acc.password}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                        <p className="mt-2 text-[10px] text-center" style={{ color: 'var(--color-stone)' }}>
+                            Bấm vào một tài khoản để điền sẵn, rồi nhấn “Sign In”.
+                        </p>
+                    </div>
                 </div>
 
                 <p className="mt-6 text-center text-sm" style={{ color: 'var(--color-stone)' }}>

@@ -35,6 +35,32 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
     const variants = product.variants ?? [];
     const hasVariants = variants.length > 0;
 
+    // A product can have one variant per (color, size) combo. Quick Add doesn't
+    // pick a color, so collapse variants down to unique sizes: aggregate stock
+    // and keep an in-stock variant as the add target for each size.
+    const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+    const sizeOptions = Array.from(
+        variants
+            .reduce((map, v) => {
+                const existing = map.get(v.size);
+                if (!existing) {
+                    map.set(v.size, { size: v.size, stock: v.stock, variant: v });
+                } else {
+                    existing.stock += v.stock;
+                    if (existing.variant.stock === 0 && v.stock > 0) existing.variant = v;
+                }
+                return map;
+            }, new Map<string, { size: string; stock: number; variant: ProductVariant }>())
+            .values()
+    ).sort((a, b) => {
+        const ia = sizeOrder.indexOf(a.size.toUpperCase());
+        const ib = sizeOrder.indexOf(b.size.toUpperCase());
+        if (ia === -1 && ib === -1) return a.size.localeCompare(b.size);
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+    });
+
     const promptLogin = () => {
         toast((t) => (
             <div className="flex flex-col gap-2">
@@ -153,15 +179,16 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
                                     Select Size
                                 </p>
                                 <div className="flex flex-wrap gap-1.5 justify-center">
-                                    {variants.map((v) => (
+                                    {sizeOptions.map((opt) => (
                                         <button
-                                            key={v.id}
-                                            disabled={v.stock === 0 || addingVariantId !== null}
-                                            onClick={(e) => handleAddWithVariant(e, v)}
-                                            className={`w-9 h-9 text-xs border transition-all ${v.stock === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:border-amber-600 hover:text-amber-700'} ${addingVariantId === v.id ? 'opacity-60' : ''}`}
+                                            key={opt.size}
+                                            disabled={opt.stock === 0 || addingVariantId !== null}
+                                            onClick={(e) => handleAddWithVariant(e, opt.variant)}
+                                            className={`w-9 h-9 text-xs border transition-all ${opt.stock === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:border-amber-600 hover:text-amber-700'} ${addingVariantId === opt.variant.id ? 'opacity-60' : ''}`}
                                             style={{ borderColor: '#D4C9B5', color: 'var(--color-brown)' }}
+                                            title={opt.stock === 0 ? 'Hết hàng' : `Size ${opt.size}`}
                                         >
-                                            {v.stock === 0 ? '—' : v.size}
+                                            {opt.size}
                                         </button>
                                     ))}
                                 </div>
