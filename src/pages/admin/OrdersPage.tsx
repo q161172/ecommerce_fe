@@ -37,8 +37,8 @@ interface AdminOrderItem {
     id: string;
     quantity: number;
     price: number;
-    product: { name: string; images: string[] };
-    variant: { size: string; color: string };
+    product?: { name: string; images: string[] } | null;
+    variant?: { size: string; color: string } | null;
 }
 
 interface AdminOrder {
@@ -49,9 +49,9 @@ interface AdminOrder {
     shippingFee?: number;
     notes: string | null;
     status: OrderStatus;
-    user: { name: string; email: string };
-    address: { fullName: string; phone: string; street: string; district: string; city: string };
-    items: AdminOrderItem[];
+    user?: { name: string; email: string } | null;
+    address?: { fullName: string; phone: string; street: string; district: string; city: string } | null;
+    items?: AdminOrderItem[];
 }
 
 export default function AdminOrdersPage() {
@@ -213,16 +213,24 @@ export default function AdminOrdersPage() {
                             <div className="space-y-6">
                                 <div>
                                     <h4 className="font-medium text-sm mb-2 text-muted-foreground uppercase tracking-wider">Customer</h4>
-                                    <p className="font-medium">{selectedOrder.user.name}</p>
-                                    <p className="text-sm text-muted-foreground">{selectedOrder.user.email}</p>
+                                    <p className="font-medium">{selectedOrder.user?.name ?? '—'}</p>
+                                    <p className="text-sm text-muted-foreground">{selectedOrder.user?.email ?? '—'}</p>
                                 </div>
                                 <div>
                                     <h4 className="font-medium text-sm mb-2 text-muted-foreground uppercase tracking-wider">Shipping Address</h4>
-                                    <p className="font-medium">{selectedOrder.address.fullName}</p>
-                                    <p className="text-sm">{selectedOrder.address.phone}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {selectedOrder.address.street}, {selectedOrder.address.district}, {selectedOrder.address.city}
-                                    </p>
+                                    {selectedOrder.address ? (
+                                        <>
+                                            <p className="font-medium">{selectedOrder.address.fullName}</p>
+                                            <p className="text-sm">{selectedOrder.address.phone}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {[selectedOrder.address.street, selectedOrder.address.district, selectedOrder.address.city]
+                                                    .filter(Boolean)
+                                                    .join(', ')}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">No address on file.</p>
+                                    )}
                                 </div>
                                 {selectedOrder.notes && (
                                     <div>
@@ -234,14 +242,16 @@ export default function AdminOrdersPage() {
                             <div>
                                 <h4 className="font-medium text-sm mb-4 text-muted-foreground uppercase tracking-wider">Order Items</h4>
                                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-4">
-                                    {selectedOrder.items.map((item) => (
+                                    {(selectedOrder.items ?? []).map((item) => (
                                         <div key={item.id} className="flex gap-4 items-center border-b pb-4 last:border-0">
                                             <div className="w-12 h-16 bg-muted rounded overflow-hidden">
-                                                {item.product.images?.[0] && <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />}
+                                                {item.product?.images?.[0] && <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-sm truncate">{item.product.name}</p>
-                                                <p className="text-xs text-muted-foreground">{item.variant.size} / {item.variant.color}</p>
+                                                <p className="font-medium text-sm truncate">{item.product?.name ?? 'Product'}</p>
+                                                {item.variant && (
+                                                    <p className="text-xs text-muted-foreground">{item.variant.size} / {item.variant.color}</p>
+                                                )}
                                                 <p className="text-xs text-muted-foreground mt-1">Qty: {item.quantity}</p>
                                             </div>
                                             <p className="font-medium text-sm">{Number(item.price).toLocaleString('vi-VN')}₫</p>
