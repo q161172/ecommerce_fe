@@ -25,10 +25,16 @@ export default function ScrollToTopButton({ threshold = 400 }: ScrollToTopButton
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             aria-label="Back to top"
-            className={`fixed bottom-6 right-6 z-40 w-11 h-11 flex items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:-translate-y-0.5 ${visible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-3 pointer-events-none'}`}
+            className={`fixed bottom-6 right-6 z-40 w-14 h-14 flex items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:-translate-y-0.5 ${visible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-3 pointer-events-none'}`}
             style={{ background: 'var(--color-brown)', color: 'var(--color-ivory)', border: '1px solid var(--color-gold)' }}
         >
-            <ArrowUp size={18} />
+            {visible && (
+                <>
+                    <span className="scroll-top-ripple" />
+                    <span className="scroll-top-ripple" style={{ animationDelay: '1.1s' }} />
+                </>
+            )}
+            <ArrowUp size={22} />
         </button>
     );
 }
