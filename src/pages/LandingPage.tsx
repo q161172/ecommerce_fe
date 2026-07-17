@@ -1,49 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useProducts } from '@/hooks';
 import { ArrowRight, Star } from 'lucide-react';
-
-function ProductCard({ product }: { product: any }) {
-    const avgRating = product.reviews?.length
-        ? product.reviews.reduce((s: number, r: any) => s + r.rating, 0) / product.reviews.length
-        : 0;
-
-    return (
-        <Link to={`/shop/${product.slug}`} className="product-card group">
-            <div className="product-image">
-                {product.images[0] ? (
-                    <img src={product.images[0]} alt={product.name} loading="lazy" />
-                ) : (
-                    <div className="w-full h-full skeleton" />
-                )}
-                {product.comparePrice && (
-                    <div className="absolute top-3 left-3">
-                        <span className="badge-gold text-[10px]">Sale</span>
-                    </div>
-                )}
-            </div>
-            <div className="p-4">
-                <p className="text-[10px] tracking-widest uppercase mb-1" style={{ color: 'var(--color-stone)' }}>{product.category.name}</p>
-                <h3 className="text-sm font-medium" style={{ color: 'var(--color-brown)' }}>{product.name}</h3>
-                <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-sm font-medium" style={{ color: 'var(--color-gold-dark)', fontFamily: 'Cormorant Garamond, serif', fontSize: '15px' }}>
-                        {Number(product.price).toLocaleString('vi-VN')}₫
-                    </span>
-                    {product.comparePrice && (
-                        <span className="text-xs line-through" style={{ color: 'var(--color-stone)' }}>
-                            {Number(product.comparePrice).toLocaleString('vi-VN')}₫
-                        </span>
-                    )}
-                </div>
-                {avgRating > 0 && (
-                    <div className="flex items-center gap-1 mt-1.5">
-                        <Star size={11} fill="currentColor" style={{ color: 'var(--color-gold)' }} />
-                        <span className="text-xs" style={{ color: 'var(--color-stone)' }}>{avgRating.toFixed(1)}</span>
-                    </div>
-                )}
-            </div>
-        </Link>
-    );
-}
+import ProductCard from '@/components/product/ProductCard';
 
 export default function LandingPage() {
     const { data: featured } = useProducts({ featured: true, limit: 4 });

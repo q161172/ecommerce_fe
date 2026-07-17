@@ -1,294 +1,320 @@
-import { useState } from 'react';
-import { useProducts } from '@/hooks';
-import { useCategories } from '@/hooks';
-import { useAddCartItem } from '@/hooks';
-import { useCartStore } from '@/store/cartStore';
-import { useAuthStore } from '@/store/authStore';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, Star, ShoppingBag } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { useProducts, useCategories } from '@/hooks';
+import type { Category } from '@/types';
+import ProductCard from '@/components/product/ProductCard';
+import Pagination from '@/components/common/Pagination';
 
-function ProductCard({ product }: { product: any }) {
-    const navigate = useNavigate();
-    const { isAuthenticated } = useAuthStore();
-    const { addItem, openCart } = useCartStore();
-    const addToCartMutation = useAddCartItem();
+const PAGE_SIZE = 12;
 
-    const [pickerOpen, setPickerOpen] = useState(false);
-    const [selectedVariant, setSelectedVariant] = useState<any>(null);
-    const [adding, setAdding] = useState(false);
+const SORT_OPTIONS = [
+    { value: 'newest', label: 'Newest' },
+    { value: 'popular', label: 'Most Popular' },
+    { value: 'price_asc', label: 'Price: Low to High' },
+    { value: 'price_desc', label: 'Price: High to Low' },
+];
 
-    const avgRating = product.reviews?.length
-        ? product.reviews.reduce((s: number, r: any) => s + r.rating, 0) / product.reviews.length
-        : 0;
-
-    const variants: any[] = product.variants ?? [];
-    const hasVariants = variants.length > 0;
-
-    const handleQuickAdd = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (!isAuthenticated) {
-            toast((t) => (
-                <div className="flex flex-col gap-2">
-                    <p className="text-sm font-medium">Đăng nhập để thêm vào giỏ hàng</p>
-                    <div className="flex gap-2">
-                        <button
-                            className="flex-1 py-1.5 px-3 text-xs bg-gray-900 text-white rounded hover:bg-gray-700"
-                            onClick={() => { toast.dismiss(t.id); navigate('/login', { state: { from: `/shop/${product.slug}` } }); }}
-                        >
-                            Đăng nhập
-                        </button>
-                        <button
-                            className="flex-1 py-1.5 px-3 text-xs border rounded hover:bg-gray-50"
-                            onClick={() => toast.dismiss(t.id)}
-                        >
-                            Bỏ qua
-                        </button>
-                    </div>
-                </div>
-            ), { duration: 6000 });
-            return;
-        }
-
-        if (!hasVariants) {
-            toast.error('Sản phẩm này chưa có biến thể. Xem chi tiết để biết thêm.'); return;
-        }
-
-        // Toggle size picker
-        setPickerOpen(o => !o);
-    };
-
-    const handleAddWithVariant = async (e: React.MouseEvent, variant: any) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (variant.stock === 0) { toast.error('Hết hàng'); return; }
-        setSelectedVariant(variant);
-        setAdding(true);
-        try {
-            await addToCartMutation.mutateAsync({ productId: product.id, variantId: variant.id, quantity: 1 });
-            addItem({
-                id: variant.id, cartId: '', productId: product.id, variantId: variant.id, quantity: 1,
-                product: { id: product.id, name: product.name, slug: product.slug, images: product.images, price: product.price },
-                variant,
-            });
-            setPickerOpen(false);
-            openCart();
-            toast.success(`${product.name} — ${variant.size} added!`);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message ?? 'Failed to add');
-        } finally {
-            setAdding(false);
-            setSelectedVariant(null);
-        }
-    };
-
-    return (
-        <Link to={`/shop/${product.slug}`} className="product-card group relative">
-            <div className="product-image">
-                {product.images[0] ? (
-                    <img src={product.images[0]} alt={product.name} loading="lazy" />
-                ) : (
-                    <div className="w-full h-full skeleton" style={{ minHeight: 280 }} />
-                )}
-                {product.comparePrice && (
-                    <div className="absolute top-3 left-3"><span className="badge-gold text-[10px]">Sale</span></div>
-                )}
-
-                {/* Quick Add button — appears on hover */}
-                <button
-                    onClick={handleQuickAdd}
-                    className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2 text-xs tracking-wide opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200"
-                    style={{ background: 'rgba(44,24,16,0.92)', color: '#F5F0E8', whiteSpace: 'nowrap' }}
-                    title="Add to cart"
-                >
-                    <ShoppingBag size={13} />
-                    Quick Add
-                </button>
-
-                {/* Size picker popup */}
-                {pickerOpen && (
-                    <div
-                        className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 p-3 shadow-xl rounded"
-                        style={{ background: '#FAF7F2', minWidth: 160, border: '1px solid #EDE7D9' }}
-                        onClick={e => { e.preventDefault(); e.stopPropagation(); }}
-                    >
-                        <p className="text-[10px] tracking-widest uppercase mb-2 text-center" style={{ color: 'var(--color-stone)' }}>Select Size</p>
-                        <div className="flex flex-wrap gap-1.5 justify-center">
-                            {variants.map((v) => (
-                                <button
-                                    key={v.id}
-                                    disabled={v.stock === 0 || adding}
-                                    onClick={(e) => handleAddWithVariant(e, v)}
-                                    className={`w-9 h-9 text-xs border transition-all ${v.stock === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:border-amber-600 hover:text-amber-700'} ${selectedVariant?.id === v.id && adding ? 'opacity-60' : ''}`}
-                                    style={{ borderColor: '#D4C9B5', color: 'var(--color-brown)' }}
-                                >
-                                    {v.stock === 0 ? '—' : v.size}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-            <div className="p-4">
-                <p className="text-[10px] tracking-widest uppercase mb-1" style={{ color: 'var(--color-stone)' }}>{product.category?.name}</p>
-                <h3 className="text-sm font-medium" style={{ color: 'var(--color-brown)' }}>{product.name}</h3>
-                <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-sm font-medium" style={{ color: 'var(--color-gold-dark)', fontFamily: 'Cormorant Garamond, serif', fontSize: '15px' }}>
-                        {Number(product.price).toLocaleString('vi-VN')}₫
-                    </span>
-                    {product.comparePrice && (
-                        <span className="text-xs line-through" style={{ color: 'var(--color-stone)' }}>
-                            {Number(product.comparePrice).toLocaleString('vi-VN')}₫
-                        </span>
-                    )}
-                </div>
-                {avgRating > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
-                        <Star size={11} fill="currentColor" style={{ color: 'var(--color-gold)' }} />
-                        <span className="text-xs" style={{ color: 'var(--color-stone)' }}>{avgRating.toFixed(1)}</span>
-                    </div>
-                )}
-            </div>
-        </Link>
-    );
-}
+// Price presets (VND). `min`/`max` map straight to the API's minPrice/maxPrice.
+const PRICE_RANGES = [
+    { id: 'lt500', label: 'Dưới 500.000₫', min: undefined, max: 500_000 },
+    { id: '500-1m', label: '500.000₫ – 1.000.000₫', min: 500_000, max: 1_000_000 },
+    { id: '1m-2m', label: '1.000.000₫ – 2.000.000₫', min: 1_000_000, max: 2_000_000 },
+    { id: 'gt2m', label: 'Trên 2.000.000₫', min: 2_000_000, max: undefined },
+];
 
 export default function ShopPage() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [filterOpen, setFilterOpen] = useState(false);
+    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [search, setSearch] = useState(searchParams.get('search') ?? '');
 
     const categoryId = searchParams.get('categoryId') ?? '';
     const sort = searchParams.get('sort') ?? 'newest';
     const page = Number(searchParams.get('page')) || 1;
+    const minPrice = searchParams.get('minPrice') ?? '';
+    const maxPrice = searchParams.get('maxPrice') ?? '';
+    const featured = searchParams.get('featured') === 'true';
 
     const { data: categories } = useCategories();
+    const { data, isLoading, isFetching } = useProducts({
+        categoryId: categoryId || undefined,
+        sort,
+        page,
+        limit: PAGE_SIZE,
+        search: search || undefined,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        featured: featured || undefined,
+    });
 
-    const { data, isLoading } = useProducts({ categoryId: categoryId || undefined, sort, page, limit: 12, search: search || undefined });
+    // Keep the search box in sync when the URL changes (back/forward, chip clear).
+    useEffect(() => {
+        setSearch(searchParams.get('search') ?? '');
+    }, [searchParams]);
 
-    const updateFilter = (key: string, value: string) => {
-        const p = new URLSearchParams(searchParams);
-        if (value) p.set(key, value); else p.delete(key);
-        p.delete('page');
-        setSearchParams(p);
+    // Jump back to top whenever the page number changes.
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [page]);
+
+    const setParams = (mutate: (p: URLSearchParams) => void, { resetPage = true } = {}) => {
+        const next = new URLSearchParams(searchParams);
+        mutate(next);
+        if (resetPage) next.delete('page');
+        setSearchParams(next);
     };
+
+    const setFilter = (key: string, value: string) =>
+        setParams((p) => (value ? p.set(key, value) : p.delete(key)));
+
+    const setPriceRange = (rangeId: string) => {
+        const current = PRICE_RANGES.find(
+            (r) => String(r.min ?? '') === minPrice && String(r.max ?? '') === maxPrice,
+        );
+        const range = PRICE_RANGES.find((r) => r.id === rangeId);
+        setParams((p) => {
+            // Toggle off if the same range is clicked again.
+            if (current?.id === rangeId || !range) {
+                p.delete('minPrice');
+                p.delete('maxPrice');
+                return;
+            }
+            range.min ? p.set('minPrice', String(range.min)) : p.delete('minPrice');
+            range.max ? p.set('maxPrice', String(range.max)) : p.delete('maxPrice');
+        });
+    };
+
+    const activePriceId = PRICE_RANGES.find(
+        (r) => String(r.min ?? '') === minPrice && String(r.max ?? '') === maxPrice,
+    )?.id;
+
+    const submitSearch = () => setFilter('search', search.trim());
+
+    const clearAll = () => {
+        setSearch('');
+        setSearchParams(new URLSearchParams());
+    };
+
+    const hasActiveFilters = Boolean(categoryId || minPrice || maxPrice || search || featured);
+    const activeCategory = (categories ?? []).find((c: Category) => c.id === categoryId);
+
+    const FiltersContent = () => (
+        <div className="space-y-8">
+            <div>
+                <h3 className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-brown)' }}>
+                    Category
+                </h3>
+                <div className="flex flex-col gap-1">
+                    <button
+                        onClick={() => setFilter('categoryId', '')}
+                        className={`text-left text-sm py-1.5 transition-colors ${!categoryId ? 'font-medium' : ''}`}
+                        style={{ color: !categoryId ? 'var(--color-gold-dark)' : 'var(--color-stone)' }}
+                    >
+                        All Products
+                    </button>
+                    {(categories ?? []).map((cat: Category) => (
+                        <button
+                            key={cat.id}
+                            onClick={() => setFilter('categoryId', cat.id)}
+                            className={`flex items-center justify-between text-left text-sm py-1.5 transition-colors ${categoryId === cat.id ? 'font-medium' : ''}`}
+                            style={{ color: categoryId === cat.id ? 'var(--color-gold-dark)' : 'var(--color-stone)' }}
+                        >
+                            <span>{cat.name}</span>
+                            {cat._count?.products !== undefined && (
+                                <span className="text-[11px]" style={{ color: 'var(--color-stone)' }}>
+                                    {cat._count.products}
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="h-px" style={{ background: '#EDE7D9' }} />
+
+            <div>
+                <h3 className="text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--color-brown)' }}>
+                    Price
+                </h3>
+                <div className="flex flex-col gap-1">
+                    {PRICE_RANGES.map((r) => (
+                        <button
+                            key={r.id}
+                            onClick={() => setPriceRange(r.id)}
+                            className={`text-left text-sm py-1.5 transition-colors ${activePriceId === r.id ? 'font-medium' : ''}`}
+                            style={{ color: activePriceId === r.id ? 'var(--color-gold-dark)' : 'var(--color-stone)' }}
+                        >
+                            {r.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {hasActiveFilters && (
+                <button onClick={clearAll} className="btn-outline w-full text-xs">
+                    Clear All Filters
+                </button>
+            )}
+        </div>
+    );
 
     return (
         <div className="pt-24 pb-20" style={{ background: 'var(--color-cream)' }}>
             <div className="max-w-7xl mx-auto px-6 lg:px-8">
                 {/* Header */}
-                <div className="text-center py-12">
+                <div className="text-center py-10">
                     <span className="section-tag">Explore</span>
                     <h1 className="section-title">The Collection</h1>
                     <div className="section-divider mx-auto" />
                 </div>
 
-                {/* Search + Controls */}
-                <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
-                    <div className="relative flex-1 max-w-md">
+                {/* Search */}
+                <div className="max-w-xl mx-auto mb-10">
+                    <div className="relative">
                         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-stone)' }} />
                         <input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && updateFilter('search', search)}
-                            className="input-field pl-10 pr-4"
+                            onKeyDown={(e) => e.key === 'Enter' && submitSearch()}
+                            className="input-field pl-10 pr-10"
                             placeholder="Search products..."
                         />
+                        {search && (
+                            <button
+                                onClick={() => { setSearch(''); setFilter('search', ''); }}
+                                className="absolute right-4 top-1/2 -translate-y-1/2"
+                                aria-label="Clear search"
+                            >
+                                <X size={16} style={{ color: 'var(--color-stone)' }} />
+                            </button>
+                        )}
                     </div>
-                    <button onClick={() => setFilterOpen(!filterOpen)} className="btn-outline flex items-center gap-2 text-xs">
-                        <SlidersHorizontal size={14} /> Filters
-                    </button>
-                    <select
-                        value={sort}
-                        onChange={(e) => updateFilter('sort', e.target.value)}
-                        className="input-field w-auto text-xs"
-                        style={{ paddingTop: 12, paddingBottom: 12 }}
-                    >
-                        <option value="newest">Newest</option>
-                        <option value="popular">Most Popular</option>
-                        <option value="price_asc">Price: Low to High</option>
-                        <option value="price_desc">Price: High to Low</option>
-                    </select>
                 </div>
 
-                {/* Filter Panel */}
-                {filterOpen && (
-                    <div className="mb-8 p-6 border" style={{ background: 'var(--color-white)', borderColor: '#EDE7D9' }}>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-brown)' }}>Filter by Category</h3>
-                            <button onClick={() => setFilterOpen(false)}><X size={16} style={{ color: 'var(--color-stone)' }} /></button>
+                <div className="flex gap-10">
+                    {/* Sidebar filters (desktop) */}
+                    <aside className="hidden lg:block w-60 flex-shrink-0">
+                        <div className="sticky top-24">
+                            <FiltersContent />
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                onClick={() => updateFilter('categoryId', '')}
-                                className={`px-4 py-2 text-xs tracking-wide border transition-all ${!categoryId ? 'btn-primary' : 'btn-outline'}`}
-                            >
-                                All
-                            </button>
-                            {(categories ?? []).map((cat: any) => (
+                    </aside>
+
+                    {/* Main */}
+                    <div className="flex-1 min-w-0">
+                        {/* Toolbar */}
+                        <div className="flex items-center justify-between gap-4 mb-6">
+                            <div className="flex items-center gap-3">
                                 <button
-                                    key={cat.id}
-                                    onClick={() => updateFilter('categoryId', cat.id)}
-                                    className={`px-4 py-2 text-xs tracking-wide border transition-all ${categoryId === cat.id ? 'btn-primary' : 'btn-outline'}`}
+                                    onClick={() => setMobileFiltersOpen(true)}
+                                    className="btn-outline lg:hidden flex items-center gap-2 text-xs"
                                 >
-                                    {cat.name}
+                                    <SlidersHorizontal size={14} /> Filters
                                 </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Active filters */}
-                {categoryId && (
-                    <div className="flex items-center gap-2 mb-6">
-                        <span className="text-xs" style={{ color: 'var(--color-stone)' }}>Showing:</span>
-                        <span className="badge-gold flex items-center gap-1">
-                            {(categories ?? []).find((c: any) => c.id === categoryId)?.name}
-                            <button onClick={() => updateFilter('categoryId', '')}><X size={10} /></button>
-                        </span>
-                    </div>
-                )}
-
-                {/* Product Grid */}
-                {isLoading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                        {[...Array(12)].map((_, i) => (
-                            <div key={i} className="card">
-                                <div className="skeleton" style={{ aspectRatio: '3/4' }} />
-                                <div className="p-4 space-y-2">
-                                    <div className="skeleton h-3 rounded w-3/4" />
-                                    <div className="skeleton h-4 rounded w-1/2" />
-                                </div>
+                                <p className="text-xs" style={{ color: 'var(--color-stone)' }}>
+                                    {data ? `${data.total} product${data.total === 1 ? '' : 's'}` : '\u00A0'}
+                                </p>
                             </div>
-                        ))}
-                    </div>
-                ) : data?.products?.length === 0 ? (
-                    <div className="text-center py-24">
-                        <p className="text-sm" style={{ color: 'var(--color-stone)' }}>No products found.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                        {data?.products?.map((p) => <ProductCard key={p.id} product={p} />)}
-                    </div>
-                )}
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs hidden sm:inline" style={{ color: 'var(--color-stone)' }}>Sort by</span>
+                                <select
+                                    value={sort}
+                                    onChange={(e) => setFilter('sort', e.target.value)}
+                                    className="input-field w-auto text-xs"
+                                    style={{ paddingTop: 10, paddingBottom: 10 }}
+                                >
+                                    {SORT_OPTIONS.map((o) => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
 
-                {/* Pagination */}
-                {data && data.totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-2 mt-12">
-                        {[...Array(data.totalPages)].map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => updateFilter('page', String(i + 1))}
-                                className={`w-9 h-9 text-sm transition-all ${page === i + 1 ? 'btn-primary' : 'btn-outline'}`}
+                        {/* Active filter chips */}
+                        {(activeCategory || activePriceId || featured) && (
+                            <div className="flex flex-wrap items-center gap-2 mb-6">
+                                {featured && (
+                                    <span className="badge-gold flex items-center gap-1">
+                                        Featured
+                                        <button onClick={() => setFilter('featured', '')}><X size={10} /></button>
+                                    </span>
+                                )}
+                                {activeCategory && (
+                                    <span className="badge-gold flex items-center gap-1">
+                                        {activeCategory.name}
+                                        <button onClick={() => setFilter('categoryId', '')}><X size={10} /></button>
+                                    </span>
+                                )}
+                                {activePriceId && (
+                                    <span className="badge-gold flex items-center gap-1">
+                                        {PRICE_RANGES.find((r) => r.id === activePriceId)?.label}
+                                        <button onClick={() => setPriceRange(activePriceId)}><X size={10} /></button>
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Grid */}
+                        {isLoading ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                                {[...Array(PAGE_SIZE)].map((_, i) => (
+                                    <div key={i} className="card">
+                                        <div className="skeleton" style={{ aspectRatio: '3/4' }} />
+                                        <div className="p-4 space-y-2">
+                                            <div className="skeleton h-3 rounded w-3/4" />
+                                            <div className="skeleton h-4 rounded w-1/2" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : !data?.products?.length ? (
+                            <div className="text-center py-24 border" style={{ borderColor: '#EDE7D9', background: 'var(--color-white)' }}>
+                                <p className="text-sm mb-4" style={{ color: 'var(--color-stone)' }}>No products found.</p>
+                                {hasActiveFilters && (
+                                    <button onClick={clearAll} className="btn-outline text-xs">Clear Filters</button>
+                                )}
+                            </div>
+                        ) : (
+                            <div
+                                className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 transition-opacity duration-200"
+                                style={{ opacity: isFetching ? 0.6 : 1 }}
                             >
-                                {i + 1}
-                            </button>
-                        ))}
+                                {data.products.map((product) => (
+                                    <ProductCard key={product.id} product={product} />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Pagination */}
+                        {data && data.totalPages > 1 && (
+                            <Pagination
+                                page={page}
+                                totalPages={data.totalPages}
+                                onPageChange={(p) => setParams((sp) => sp.set('page', String(p)), { resetPage: false })}
+                                className="mt-12"
+                            />
+                        )}
                     </div>
-                )}
+                </div>
             </div>
+
+            {/* Mobile filters slide-over */}
+            {mobileFiltersOpen && (
+                <>
+                    <div className="overlay lg:hidden" onClick={() => setMobileFiltersOpen(false)} />
+                    <div
+                        className="fixed top-0 left-0 bottom-0 z-50 w-80 max-w-[85vw] p-6 overflow-y-auto lg:hidden"
+                        style={{ background: 'var(--color-cream)' }}
+                    >
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-sm tracking-widest uppercase" style={{ color: 'var(--color-brown)' }}>Filters</h2>
+                            <button onClick={() => setMobileFiltersOpen(false)}>
+                                <X size={18} style={{ color: 'var(--color-stone)' }} />
+                            </button>
+                        </div>
+                        <FiltersContent />
+                    </div>
+                </>
+            )}
         </div>
     );
 }
