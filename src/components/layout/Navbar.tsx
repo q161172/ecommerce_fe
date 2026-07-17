@@ -41,7 +41,11 @@ export default function Navbar() {
                     </button>
 
                     {/* Logo */}
-                    <Link to="/" className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0">
+                    <Link
+                        to="/"
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0"
+                    >
                         <h1 className="text-2xl tracking-widest font-light" style={{ fontFamily: 'Cormorant Garamond, serif', color: 'var(--color-brown)', letterSpacing: '0.3em' }}>
                             MAISON
                         </h1>
