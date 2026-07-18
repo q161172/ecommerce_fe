@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 // Layouts
 import CustomerLayout from '@/components/layout/CustomerLayout';
 import AdminLayout from '@/components/layout/AdminLayout';
+import SplashScreen from '@/components/common/SplashScreen';
 
 // Route guards
 const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) => {
@@ -58,6 +59,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <SplashScreen />
         <Toaster
           position="top-right"
           toastOptions={{
