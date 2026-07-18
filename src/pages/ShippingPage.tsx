@@ -1,6 +1,6 @@
 export default function ShippingPage() {
     return (
-        <div className="max-w-3xl mx-auto px-6 lg:px-8 py-20">
+        <div className="pt-24 max-w-3xl mx-auto px-6 lg:px-8 py-20">
             {/* Header */}
             <div className="text-center mb-16">
                 <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--color-gold)' }}>
@@ -23,7 +23,7 @@ export default function ShippingPage() {
                         {[
                             {
                                 title: 'Standard Domestic Shipping',
-                                body: 'Orders within Vietnam are delivered within 3–5 business days. Free shipping on orders over 2,000,000₫.',
+                                body: 'Orders within Vietnam are delivered within 3–5 business days. Free shipping on orders over 500.000₫.',
                             },
                             {
                                 title: 'Express Shipping',

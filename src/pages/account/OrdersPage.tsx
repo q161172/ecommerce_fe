@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useMyOrders } from '@/hooks';
 import { format } from 'date-fns';
 import { Package, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import type { Order } from '@/types';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -12,8 +14,26 @@ const STATUS_COLORS: Record<string, string> = {
     CANCELLED: 'bg-red-50 text-red-700 border-red-200',
 };
 
+const STATUS_LABELS: Record<string, string> = {
+    PENDING: 'Pending',
+    PROCESSING: 'Processing',
+    SHIPPED: 'Shipped',
+    DELIVERED: 'Delivered',
+    CANCELLED: 'Cancelled',
+};
+
 export default function OrdersPage() {
     const { data: response, isLoading } = useMyOrders();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    useEffect(() => {
+        const payment = searchParams.get('payment');
+        if (payment === 'success') {
+            toast.success('Payment successful! Your order is confirmed.');
+            searchParams.delete('payment');
+            setSearchParams(searchParams, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     return (
         <div className="pt-24 pb-20 min-h-screen" style={{ background: 'var(--color-cream)' }}>
@@ -38,7 +58,6 @@ export default function OrdersPage() {
                     <div className="space-y-6">
                         {response?.map((order: Order) => (
                             <div key={order.id} className="card p-6">
-                                {/* Header */}
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4 mb-4" style={{ borderColor: '#EDE7D9' }}>
                                     <div>
                                         <p className="text-xs uppercase tracking-widest text-stone">Order #{order.id.slice(0, 8)}</p>
@@ -48,7 +67,7 @@ export default function OrdersPage() {
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${STATUS_COLORS[order.status]}`}>
-                                            {order.status}
+                                            {STATUS_LABELS[order.status] ?? order.status}
                                         </span>
                                         <p className="font-serif text-lg font-medium" style={{ color: 'var(--color-brown)' }}>
                                             {Number(order.total).toLocaleString('vi-VN')}₫
@@ -56,31 +75,46 @@ export default function OrdersPage() {
                                     </div>
                                 </div>
 
-                                {/* Items */}
                                 <div className="space-y-4">
-                                    {order.items.map((item: any) => (
-                                        <div key={item.id} className="flex gap-4 items-center">
-                                            <div className="w-16 h-20 bg-ivory overflow-hidden flex-shrink-0">
-                                                {item.product.images[0] && <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />}
+                                    {order.items.map((item) => {
+                                        const name = item.product?.name ?? item.productName;
+                                        const slug = item.product?.slug;
+                                        const variantLabel = item.variant
+                                            ? `${item.variant.size} / ${item.variant.color}`
+                                            : item.variantInfo;
+                                        const image = item.product?.images?.[0];
+
+                                        return (
+                                            <div key={item.id} className="flex gap-4 items-center">
+                                                <div className="w-16 h-20 bg-ivory overflow-hidden flex-shrink-0">
+                                                    {image && <img src={image} alt="" className="w-full h-full object-cover" />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    {slug ? (
+                                                        <Link to={`/shop/${slug}`} className="font-medium text-sm hover:underline" style={{ color: 'var(--color-brown)' }}>
+                                                            {name}
+                                                        </Link>
+                                                    ) : (
+                                                        <p className="font-medium text-sm" style={{ color: 'var(--color-brown)' }}>{name}</p>
+                                                    )}
+                                                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-stone)' }}>{variantLabel}</p>
+                                                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-charcoal)' }}>Qty: {item.quantity}</p>
+                                                </div>
+                                                <p className="text-sm font-medium" style={{ color: 'var(--color-charcoal)' }}>
+                                                    {Number(item.price).toLocaleString('vi-VN')}₫
+                                                </p>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <Link to={`/shop/${item.product.slug}`} className="font-medium text-sm hover:underline" style={{ color: 'var(--color-brown)' }}>
-                                                    {item.product.name}
-                                                </Link>
-                                                <p className="text-xs mt-0.5" style={{ color: 'var(--color-stone)' }}>{item.variant.size} / {item.variant.color}</p>
-                                                <p className="text-xs mt-0.5" style={{ color: 'var(--color-charcoal)' }}>Qty: {item.quantity}</p>
-                                            </div>
-                                            <p className="text-sm font-medium" style={{ color: 'var(--color-charcoal)' }}>
-                                                {Number(item.price).toLocaleString('vi-VN')}₫
-                                            </p>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
 
-                                {/* Actions */}
                                 {order.status === 'DELIVERED' && (
                                     <div className="mt-6 pt-4 border-t flex justify-end" style={{ borderColor: '#EDE7D9' }}>
-                                        <Link to={`/shop/${order.items[0]?.product?.slug}`} className="text-xs uppercase tracking-widest font-medium flex items-center gap-1 hover:opacity-70" style={{ color: 'var(--color-gold)' }}>
+                                        <Link
+                                            to={order.items[0]?.product?.slug ? `/shop/${order.items[0].product.slug}` : '/shop'}
+                                            className="text-xs uppercase tracking-widest font-medium flex items-center gap-1 hover:opacity-70"
+                                            style={{ color: 'var(--color-gold)' }}
+                                        >
                                             Leave Review <ArrowRight size={14} />
                                         </Link>
                                     </div>

@@ -12,7 +12,7 @@ export default function ProductDetailPage() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const { isAuthenticated } = useAuthStore();
-    const { addItem } = useCartStore();
+    const { setItems } = useCartStore();
 
     // ── All hooks must be at top, before any early return ──────────────────
     const [selectedColor, setSelectedColor] = useState('');
@@ -70,16 +70,8 @@ export default function ProductDetailPage() {
 
         setAddingToCart(true);
         try {
-            await addToCartMutation.mutateAsync({ productId: product.id, variantId: selectedVariant.id, quantity });
-            addItem({
-                id: selectedVariant.id,
-                cartId: '',
-                productId: product.id,
-                variantId: selectedVariant.id,
-                quantity,
-                product: { id: product.id, name: product.name, slug: product.slug, images: product.images, price: product.price },
-                variant: selectedVariant,
-            });
+            const cart = await addToCartMutation.mutateAsync({ productId: product.id, variantId: selectedVariant.id, quantity });
+            setItems(cart.items as any);
             toast.success('Added to cart!');
         } catch (err: any) {
             toast.error(err?.response?.data?.message ?? 'Failed to add to cart');
@@ -184,7 +176,10 @@ export default function ProductDetailPage() {
                                     {availableSizes.map((variant) => (
                                         <button
                                             key={variant.id}
-                                            onClick={() => setSelectedVariant(variant)}
+                                            onClick={() => {
+                                                setSelectedVariant(variant);
+                                                setQuantity((q) => Math.min(q, Math.max(1, variant.stock)));
+                                            }}
                                             disabled={variant.stock === 0}
                                             className={`w-12 h-12 text-sm border transition-all ${selectedVariant?.id === variant.id ? 'btn-primary' : variant.stock === 0 ? 'opacity-30 cursor-not-allowed btn-outline' : 'btn-outline'}`}
                                         >
@@ -213,7 +208,12 @@ export default function ProductDetailPage() {
                             <div className="flex items-center border w-fit" style={{ borderColor: '#D4C9B5' }}>
                                 <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-4 py-3 hover:opacity-70" style={{ color: 'var(--color-brown)' }}>−</button>
                                 <span className="px-6 py-3 text-sm" style={{ color: 'var(--color-brown)', borderLeft: '1px solid #D4C9B5', borderRight: '1px solid #D4C9B5' }}>{quantity}</span>
-                                <button onClick={() => setQuantity(quantity + 1)} className="px-4 py-3 hover:opacity-70" style={{ color: 'var(--color-brown)' }}>+</button>
+                                <button
+                                    onClick={() => setQuantity(Math.min(selectedVariant?.stock ?? 1, quantity + 1))}
+                                    disabled={!selectedVariant || quantity >= selectedVariant.stock}
+                                    className="px-4 py-3 hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    style={{ color: 'var(--color-brown)' }}
+                                >+</button>
                             </div>
                         </div>
 

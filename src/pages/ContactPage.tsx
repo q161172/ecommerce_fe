@@ -16,7 +16,7 @@ export default function ContactPage() {
         // Simulate send delay
         await new Promise(r => setTimeout(r, 1000));
         setSending(false);
-        toast.success('Message sent. We\'ll be in touch within 1–2 business days.');
+        toast.success('Message received (demo). We\'ll be in touch within 1–2 business days.');
         setForm({ name: '', email: '', subject: '', message: '' });
     };
 
@@ -24,7 +24,7 @@ export default function ContactPage() {
     const inputStyle = { borderColor: '#D4C9B5', background: '#fff', color: 'var(--color-brown)' };
 
     return (
-        <div className="max-w-5xl mx-auto px-6 lg:px-8 py-20">
+        <div className="pt-24 max-w-5xl mx-auto px-6 lg:px-8 py-20">
             {/* Header */}
             <div className="text-center mb-16">
                 <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--color-gold)' }}>

@@ -122,7 +122,7 @@ export default function AdminOrdersPage() {
                 const order = row.original;
                 return (
                     <Select
-                        defaultValue={order.status}
+                        value={order.status}
                         onValueChange={(val) =>
                             updateStatusMutation.mutate(
                                 { id: order.id, status: val },

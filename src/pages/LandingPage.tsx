@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useProducts } from '@/hooks';
 import { ArrowRight, Star } from 'lucide-react';
+import toast from 'react-hot-toast';
 import ProductCard from '@/components/product/ProductCard';
 import Reveal from '@/components/common/Reveal';
 import { ProductGridSkeleton } from '@/components/common/Skeleton';
@@ -191,14 +192,24 @@ export default function LandingPage() {
                     <p className="text-sm mb-8" style={{ color: 'var(--color-stone)' }}>
                         Receive curated updates on new collections and exclusive offers.
                     </p>
-                    <form onSubmit={(e) => e.preventDefault()} className="flex gap-2">
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            toast.success('Subscribed (demo) — thank you!');
+                        }}
+                        className="flex gap-2"
+                    >
                         <input
                             type="email"
                             className="input-field flex-1"
                             placeholder="Your email address"
+                            required
                         />
                         <button type="submit" className="btn-primary whitespace-nowrap">Subscribe</button>
                     </form>
+                    <p className="text-[11px] mt-3" style={{ color: 'var(--color-stone)' }}>
+                        Demo only — emails are not stored yet.
+                    </p>
                 </div>
             </section>
         </div>

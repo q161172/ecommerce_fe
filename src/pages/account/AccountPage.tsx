@@ -317,7 +317,7 @@ export default function AccountPage() {
                                                 {addr.street}<br />{addr.district}, {addr.city}
                                             </p>
                                             <div
-                                                className="flex gap-3 mt-6 pt-4 border-t opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="flex gap-3 mt-6 pt-4 border-t opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                                                 style={{ borderColor: '#EDE7D9' }}
                                             >
                                                 <button

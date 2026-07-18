@@ -3,12 +3,13 @@ import { useProfile } from '@/hooks';
 import { useCreateOrder } from '@/hooks';
 import { useCartStore } from '@/store/cartStore';
 import { MapPin, Plus, Check } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export default function CheckoutPage() {
     const { items, totalPrice, clearCart } = useCartStore();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [selectedAddressId, setSelectedAddressId] = useState<string>('');
     const [notes, setNotes] = useState('');
     const [placing, setPlacing] = useState(false);
@@ -20,6 +21,14 @@ export default function CheckoutPage() {
     const subtotal = totalPrice();
     const shipping = subtotal >= 500000 ? 0 : 30000;
     const total = subtotal + shipping;
+
+    useEffect(() => {
+        if (searchParams.get('payment') === 'cancelled') {
+            toast.error('Payment cancelled. Your order was not completed.');
+            searchParams.delete('payment');
+            setSearchParams(searchParams, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     // Auto-pick the default address (or the first one) once addresses load.
     useEffect(() => {

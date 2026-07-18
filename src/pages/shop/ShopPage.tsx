@@ -52,11 +52,6 @@ export default function ShopPage() {
         setSearch(searchParams.get('search') ?? '');
     }, [searchParams]);
 
-    // Jump back to top whenever the page number changes.
-    useEffect(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [page]);
-
     const setParams = (mutate: (p: URLSearchParams) => void, { resetPage = true } = {}) => {
         const next = new URLSearchParams(searchParams);
         mutate(next);

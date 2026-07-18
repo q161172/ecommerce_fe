@@ -21,7 +21,7 @@ interface ProductCardProps {
 export default function ProductCard({ product, showQuickAdd = true }: ProductCardProps) {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuthStore();
-    const { addItem } = useCartStore();
+    const { setItems } = useCartStore();
     const addToCartMutation = useAddCartItem();
 
     const [pickerOpen, setPickerOpen] = useState(false);
@@ -111,26 +111,12 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
 
         setAddingVariantId(variant.id);
         try {
-            await addToCartMutation.mutateAsync({
+            const cart = await addToCartMutation.mutateAsync({
                 productId: product.id,
                 variantId: variant.id,
                 quantity: 1,
             });
-            addItem({
-                id: variant.id,
-                cartId: '',
-                productId: product.id,
-                variantId: variant.id,
-                quantity: 1,
-                product: {
-                    id: product.id,
-                    name: product.name,
-                    slug: product.slug,
-                    images: product.images,
-                    price: product.price,
-                },
-                variant,
-            });
+            setItems(cart.items as any);
             setPickerOpen(false);
             toast.success(`${product.name} — ${variant.size} added!`);
         } catch (err) {
@@ -160,7 +146,7 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
                     <>
                         <button
                             onClick={handleQuickAdd}
-                            className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2 text-xs tracking-wide opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200"
+                            className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2 text-xs tracking-wide opacity-100 md:opacity-0 md:group-hover:opacity-100 translate-y-0 md:translate-y-2 md:group-hover:translate-y-0 transition-all duration-200"
                             style={{ background: 'rgba(44,24,16,0.92)', color: '#F5F0E8', whiteSpace: 'nowrap' }}
                             title="Add to cart"
                         >

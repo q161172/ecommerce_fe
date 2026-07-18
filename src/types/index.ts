@@ -61,6 +61,7 @@ export interface OrderItem {
     productName: string;
     variantInfo: string;
     product?: { images: string[]; slug: string; name: string };
+    variant?: { size: string; color: string };
 }
 
 export type OrderStatus = 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';

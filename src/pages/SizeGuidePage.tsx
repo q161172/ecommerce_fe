@@ -1,6 +1,6 @@
 export default function SizeGuidePage() {
     return (
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 py-20">
+        <div className="pt-24 max-w-4xl mx-auto px-6 lg:px-8 py-20">
             {/* Header */}
             <div className="text-center mb-16">
                 <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--color-gold)' }}>

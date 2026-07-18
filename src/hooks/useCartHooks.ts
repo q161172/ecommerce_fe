@@ -30,7 +30,8 @@ export const useAddCartItem = () => {
             variantId: string;
             quantity: number;
         }) => addCartItemApi(productId, variantId, quantity),
-        onSuccess: () => {
+        onSuccess: (cart) => {
+            queryClient.setQueryData(keys.cart.root, cart);
             queryClient.invalidateQueries({ queryKey: keys.cart.root });
         },
     });
