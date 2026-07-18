@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useProfile, useAddAddress, useDeleteAddress } from '@/hooks';
 import { useAuthStore } from '@/store/authStore';
-import { User, MapPin, Plus, Trash2, Edit2 } from 'lucide-react';
+import { User, MapPin, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AccountPage() {
@@ -61,18 +61,52 @@ export default function AccountPage() {
                     <div className="md:col-span-3">
                         {activeTab === 'profile' && (
                             <div className="card p-8">
-                                <h2 className="font-serif text-xl mb-6" style={{ color: 'var(--color-brown)' }}>Profile Information</h2>
+                                <h2 className="font-serif text-xl mb-2" style={{ color: 'var(--color-brown)' }}>Profile Information</h2>
+                                <p className="text-sm mb-6" style={{ color: 'var(--color-stone)' }}>
+                                    Personal details are managed by your account and cannot be edited here.
+                                </p>
+                                <div className="flex items-center gap-4 mb-8">
+                                    <div
+                                        className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-lg font-medium"
+                                        style={{ background: 'var(--color-ivory)', color: 'var(--color-brown)' }}
+                                    >
+                                        {(user?.avatar || profile?.avatar) ? (
+                                            <img
+                                                src={user?.avatar || profile?.avatar || ''}
+                                                alt=""
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            (user?.name || profile?.name || '?').charAt(0).toUpperCase()
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="font-medium" style={{ color: 'var(--color-brown)' }}>
+                                            {user?.name || profile?.name}
+                                        </p>
+                                        <p className="text-sm" style={{ color: 'var(--color-stone)' }}>
+                                            {user?.email || profile?.email}
+                                        </p>
+                                    </div>
+                                </div>
                                 <div className="grid gap-6 max-w-md">
                                     <div>
                                         <label className="block text-xs uppercase tracking-widest text-stone mb-2">Email Address</label>
-                                        <input className="input-field bg-gray-50/50 cursor-not-allowed" value={user?.email} disabled />
+                                        <input
+                                            className="input-field bg-gray-50/50 cursor-not-allowed"
+                                            value={user?.email || profile?.email || ''}
+                                            disabled
+                                            readOnly
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-xs uppercase tracking-widest text-stone mb-2">Full Name</label>
-                                        <input className="input-field bg-gray-50/50 cursor-not-allowed" value={user?.name} disabled />
-                                    </div>
-                                    <div className="pt-4 border-t" style={{ borderColor: '#EDE7D9' }}>
-                                        <button className="btn-outline text-xs">Update Profile</button>
+                                        <input
+                                            className="input-field bg-gray-50/50 cursor-not-allowed"
+                                            value={user?.name || profile?.name || ''}
+                                            disabled
+                                            readOnly
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -122,9 +156,6 @@ export default function AccountPage() {
                                                 {addr.street}<br />{addr.district}, {addr.city}
                                             </p>
                                             <div className="flex gap-3 mt-6 pt-4 border-t opacity-0 group-hover:opacity-100 transition-opacity" style={{ borderColor: '#EDE7D9' }}>
-                                                <button className="text-xs uppercase tracking-widest text-stone hover:text-brown flex items-center gap-1">
-                                                    <Edit2 size={12} /> Edit
-                                                </button>
                                                 <button
                                                     onClick={() => deleteAddressMutation.mutate(addr.id)}
                                                     className="text-xs uppercase tracking-widest hover:opacity-70 flex items-center gap-1"
