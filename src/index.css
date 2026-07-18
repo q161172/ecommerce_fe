@@ -153,6 +153,25 @@
     color: var(--color-ivory);
   }
 
+  .btn-cancel {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium tracking-widest uppercase transition-all duration-300 cursor-pointer;
+    background-color: #FDF6F6;
+    color: #C45C5C;
+    border: 1px solid #E8B4B4;
+  }
+
+  .btn-cancel:hover {
+    background-color: #C45C5C;
+    color: #FDF6F6;
+    border-color: #C45C5C;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(196, 92, 92, 0.2);
+  }
+
+  .btn-cancel:active {
+    transform: translateY(0);
+  }
+
   .btn-gold {
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium tracking-widest uppercase transition-all duration-300 cursor-pointer;
     background-color: var(--color-gold);

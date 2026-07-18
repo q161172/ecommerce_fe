@@ -21,7 +21,7 @@ interface ProductCardProps {
 export default function ProductCard({ product, showQuickAdd = true }: ProductCardProps) {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuthStore();
-    const { addItem, openCart } = useCartStore();
+    const { addItem } = useCartStore();
     const addToCartMutation = useAddCartItem();
 
     const [pickerOpen, setPickerOpen] = useState(false);
@@ -132,7 +132,6 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
                 variant,
             });
             setPickerOpen(false);
-            openCart();
             toast.success(`${product.name} — ${variant.size} added!`);
         } catch (err) {
             const message =

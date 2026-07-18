@@ -12,7 +12,7 @@ export default function ProductDetailPage() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const { isAuthenticated } = useAuthStore();
-    const { addItem, openCart } = useCartStore();
+    const { addItem } = useCartStore();
 
     // ── All hooks must be at top, before any early return ──────────────────
     const [selectedColor, setSelectedColor] = useState('');
@@ -80,7 +80,6 @@ export default function ProductDetailPage() {
                 product: { id: product.id, name: product.name, slug: product.slug, images: product.images, price: product.price },
                 variant: selectedVariant,
             });
-            openCart();
             toast.success('Added to cart!');
         } catch (err: any) {
             toast.error(err?.response?.data?.message ?? 'Failed to add to cart');
