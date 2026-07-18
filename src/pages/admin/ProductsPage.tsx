@@ -306,7 +306,7 @@ export default function AdminProductsPage() {
                 descripTable="Manage your product catalog."
                 searchPlaceholder="Search products..."
                 customActions={
-                    <Button className="gap-2 bg-gray-900 hover:bg-gray-700 text-white" onClick={() => setIsAddOpen(true)}>
+                    <Button effect="shineHover" className="gap-2 bg-gray-900 hover:bg-gray-700 text-white" onClick={() => setIsAddOpen(true)}>
                         <Plus className="w-4 h-4" /> Add Product
                     </Button>
                 }
