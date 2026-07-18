@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useProfile } from '@/hooks';
 import { useCreateOrder } from '@/hooks';
 import { useCartStore } from '@/store/cartStore';
@@ -20,6 +20,16 @@ export default function CheckoutPage() {
     const subtotal = totalPrice();
     const shipping = subtotal >= 500000 ? 0 : 30000;
     const total = subtotal + shipping;
+
+    // Auto-pick the default address (or the first one) once addresses load.
+    useEffect(() => {
+        if (!addresses.length) return;
+        setSelectedAddressId((current) => {
+            if (current && addresses.some((a) => a.id === current)) return current;
+            const defaultAddr = addresses.find((a) => a.isDefault);
+            return defaultAddr?.id ?? addresses[0].id;
+        });
+    }, [addresses]);
 
     const handlePlaceOrder = async () => {
         if (!selectedAddressId) { toast.error('Please select a delivery address'); return; }

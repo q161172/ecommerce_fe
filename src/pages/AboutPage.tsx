@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Leaf, Scissors, Sparkles } from 'lucide-react';
+import CountUp from '@/components/common/CountUp';
 
 const VALUES = [
     {
@@ -107,14 +108,14 @@ export default function AboutPage() {
             <section className="border-y py-16" style={{ borderColor: '#EDE7D9', background: 'var(--color-ivory)' }}>
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                        {STATS.map(({ value, label }) => (
+                        {STATS.map(({ value, label }, i) => (
                             <div key={label}>
-                                <p
-                                    className="text-4xl md:text-5xl font-light mb-2"
+                                <CountUp
+                                    value={value}
+                                    durationMs={1400 + i * 150}
+                                    className="text-4xl md:text-5xl font-light mb-2 block"
                                     style={{ fontFamily: 'Cormorant Garamond, serif', color: 'var(--color-gold-dark)' }}
-                                >
-                                    {value}
-                                </p>
+                                />
                                 <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-stone)' }}>{label}</p>
                             </div>
                         ))}
