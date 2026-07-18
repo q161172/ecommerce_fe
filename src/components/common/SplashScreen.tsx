@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const HOLD_MS = 2200;
-const EXIT_MS = 900;
+const HOLD_MS = 4800;  // ~2.5s longer hold for a quieter beat
+const EXIT_MS = 1200;  // slower fade-out
 
 /**
  * Quiet-luxury brand splash on first app boot.
