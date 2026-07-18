@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { googleOneTapApi } from '@/api/auth/auth.api';
+import { isOneTapCoolingDown } from '@/lib/googleOneTap';
 
 const GIS_SRC = 'https://accounts.google.com/gsi/client';
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
-// Load the Google Identity Services script once (shared across mounts).
 let gisScriptPromise: Promise<void> | null = null;
 const loadGisScript = (): Promise<void> => {
     if (window.google?.accounts?.id) return Promise.resolve();
@@ -31,27 +31,29 @@ const loadGisScript = (): Promise<void> => {
 };
 
 /**
- * Google One Tap prompt. Mount only on public pages while the app user is NOT
- * authenticated. Google itself decides whether to actually show the prompt
- * (only if the browser is signed into Google and not in cooldown).
+ * Google One Tap for signed-out storefront visitors.
+ * Skipped during post-logout cooldown to avoid noisy GIS `status` failures
+ * (Edge Tracking Prevention / third-party cookie blocks).
  */
 export default function GoogleOneTap() {
     const navigate = useNavigate();
     const handledRef = useRef(false);
 
     useEffect(() => {
-        if (!CLIENT_ID) return;
+        if (!CLIENT_ID || isOneTapCoolingDown()) return;
+
         let cancelled = false;
+        let promptTimer: ReturnType<typeof setTimeout> | undefined;
 
         loadGisScript()
             .then(() => {
-                if (cancelled || !window.google?.accounts?.id) return;
+                if (cancelled || !window.google?.accounts?.id || isOneTapCoolingDown()) return;
 
                 window.google.accounts.id.initialize({
                     client_id: CLIENT_ID,
                     auto_select: false,
                     itp_support: true,
-                    cancel_on_tap_outside: false,
+                    cancel_on_tap_outside: true,
                     callback: (response) => {
                         if (handledRef.current || !response.credential) return;
                         handledRef.current = true;
@@ -66,14 +68,22 @@ export default function GoogleOneTap() {
                             });
                     },
                 });
-                window.google.accounts.id.prompt();
+
+                // Delay so logout cleanup (cancel / disableAutoSelect) finishes first.
+                promptTimer = setTimeout(() => {
+                    if (cancelled || isOneTapCoolingDown()) return;
+                    window.google?.accounts?.id?.prompt((notification) => {
+                        void notification;
+                    });
+                }, 400);
             })
             .catch(() => {
-                /* GIS unavailable (offline / blocked) — silently skip One Tap */
+                /* GIS unavailable — skip One Tap */
             });
 
         return () => {
             cancelled = true;
+            if (promptTimer) clearTimeout(promptTimer);
             window.google?.accounts?.id?.cancel();
         };
     }, [navigate]);

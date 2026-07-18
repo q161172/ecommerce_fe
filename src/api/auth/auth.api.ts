@@ -1,5 +1,6 @@
 import { apiClient } from '@/api/client';
 import { useAuthStore } from '@/store/authStore';
+import { suppressGoogleOneTap } from '@/lib/googleOneTap';
 import type { LoginDto, RegisterDto, AuthResponse } from './auth.types';
 
 export const loginApi = async (dto: LoginDto): Promise<AuthResponse> => {
@@ -23,6 +24,9 @@ export const logoutApi = async (): Promise<void> => {
         /* ignore server errors on logout */
     }
     useAuthStore.getState().logout();
+    // Stop Google One Tap from immediately probing `status?client_id=...`
+    // after logout (often red in DevTools under Tracking Prevention).
+    suppressGoogleOneTap();
 };
 
 export const getMeApi = async (): Promise<AuthResponse['user']> => {

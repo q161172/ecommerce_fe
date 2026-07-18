@@ -70,6 +70,8 @@ apiClient.interceptors.response.use(
             } catch (refreshError) {
                 processQueue(refreshError, null);
                 useAuthStore.getState().logout();
+                const { suppressGoogleOneTap } = await import('@/lib/googleOneTap');
+                suppressGoogleOneTap();
                 window.location.href = '/login';
                 return Promise.reject(refreshError);
             } finally {
