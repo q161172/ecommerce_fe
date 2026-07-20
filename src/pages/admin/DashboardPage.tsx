@@ -183,7 +183,10 @@ export default function AdminDashboardPage() {
                                         tickFormatter={(value) => (value >= 1000000 ? `${value / 1000000}M` : `${value / 1000}K`)}
                                     />
                                     <Tooltip
-                                        formatter={(value) => [`${Number(value ?? 0).toLocaleString('vi-VN')}₫`, 'Revenue']}
+                                        formatter={(value: number | undefined) => [
+                                            `${Number(value ?? 0).toLocaleString('vi-VN')}₫`,
+                                            'Revenue',
+                                        ]}
                                     />
                                     <Area type="monotone" dataKey="total" stroke="#C9A96E" fillOpacity={1} fill="url(#colorTotal)" />
                                 </AreaChart>
