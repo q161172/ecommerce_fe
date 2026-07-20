@@ -1,6 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMyOrders } from '@/hooks';
+import { keys } from '@/hooks/keys';
 import { format } from 'date-fns';
 import { Package, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -22,18 +24,39 @@ const STATUS_LABELS: Record<string, string> = {
     CANCELLED: 'Cancelled',
 };
 
+const PAYMENT_LABELS: Record<string, string> = {
+    PENDING: 'Payment pending',
+    COMPLETED: 'Paid',
+    FAILED: 'Payment failed',
+    REFUNDED: 'Refunded',
+};
+
 export default function OrdersPage() {
-    const { data: response, isLoading } = useMyOrders();
+    const queryClient = useQueryClient();
+    const { data: response, isLoading, refetch } = useMyOrders();
     const [searchParams, setSearchParams] = useSearchParams();
+    const handledPaymentRef = useRef(false);
 
     useEffect(() => {
         const payment = searchParams.get('payment');
+        if (!payment || handledPaymentRef.current) return;
+        handledPaymentRef.current = true;
+
         if (payment === 'success') {
             toast.success('Payment successful! Your order is confirmed.');
-            searchParams.delete('payment');
-            setSearchParams(searchParams, { replace: true });
+        } else if (payment === 'failed') {
+            toast.error('Payment failed or was cancelled.');
         }
-    }, [searchParams, setSearchParams]);
+
+        void queryClient.invalidateQueries({ queryKey: keys.orders.myOrders() });
+        void refetch();
+
+        const next = new URLSearchParams(searchParams);
+        next.delete('payment');
+        next.delete('orderId');
+        next.delete('code');
+        setSearchParams(next, { replace: true });
+    }, [searchParams, setSearchParams, queryClient, refetch]);
 
     return (
         <div className="pt-24 pb-20 min-h-screen" style={{ background: 'var(--color-cream)' }}>
@@ -65,10 +88,15 @@ export default function OrdersPage() {
                                             Placed on {format(new Date(order.createdAt), 'MMM dd, yyyy')}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${STATUS_COLORS[order.status]}`}>
                                             {STATUS_LABELS[order.status] ?? order.status}
                                         </span>
+                                        {order.payment?.status && (
+                                            <span className="px-2.5 py-1 rounded-full text-xs font-medium border bg-ivory text-stone border-[#EDE7D9]">
+                                                {PAYMENT_LABELS[order.payment.status] ?? order.payment.status}
+                                            </span>
+                                        )}
                                         <p className="font-serif text-lg font-medium" style={{ color: 'var(--color-brown)' }}>
                                             {Number(order.total).toLocaleString('vi-VN')}₫
                                         </p>

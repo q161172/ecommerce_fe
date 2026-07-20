@@ -11,6 +11,7 @@ interface GoogleIdConfiguration {
     auto_select?: boolean;
     itp_support?: boolean;
     cancel_on_tap_outside?: boolean;
+    use_fedcm_for_prompt?: boolean;
 }
 
 interface GoogleAccountsId {

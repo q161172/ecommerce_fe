@@ -12,6 +12,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Google One Tap / FedCM on http://localhost needs a referrer (Google docs)
+    headers: {
+      'Referrer-Policy': 'no-referrer-when-downgrade',
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

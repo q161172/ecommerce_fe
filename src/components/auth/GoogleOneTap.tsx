@@ -2,7 +2,14 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { googleOneTapApi } from '@/api/auth/auth.api';
-import { isOneTapCoolingDown } from '@/lib/googleOneTap';
+import {
+    canUseFedCmOneTap,
+    hasOneTapPromptedThisLoad,
+    isOneTapCoolingDown,
+    isOneTapSkippedThisSession,
+    markOneTapPromptedThisLoad,
+    skipGoogleOneTapPermanentlyForSession,
+} from '@/lib/googleOneTap';
 
 const GIS_SRC = 'https://accounts.google.com/gsi/client';
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
@@ -32,59 +39,80 @@ const loadGisScript = (): Promise<void> => {
 
 /**
  * Google One Tap for signed-out storefront visitors.
- * Skipped during post-logout cooldown to avoid noisy GIS `status` failures
- * (Edge Tracking Prevention / third-party cookie blocks).
+ * Skips when FedCM is blocked (site settings) or after dismiss/cooldown,
+ * so the console doesn't fill with `FedCM get() rejects with NetworkError`.
  */
 export default function GoogleOneTap() {
     const navigate = useNavigate();
     const handledRef = useRef(false);
 
     useEffect(() => {
-        if (!CLIENT_ID || isOneTapCoolingDown()) return;
+        if (!CLIENT_ID) return;
+        if (isOneTapCoolingDown() || isOneTapSkippedThisSession()) return;
+        if (hasOneTapPromptedThisLoad()) return;
 
         let cancelled = false;
         let promptTimer: ReturnType<typeof setTimeout> | undefined;
 
-        loadGisScript()
-            .then(() => {
-                if (cancelled || !window.google?.accounts?.id || isOneTapCoolingDown()) return;
+        (async () => {
+            const fedCmOk = await canUseFedCmOneTap();
+            if (cancelled) return;
+            if (!fedCmOk) {
+                skipGoogleOneTapPermanentlyForSession();
+                return;
+            }
 
-                window.google.accounts.id.initialize({
-                    client_id: CLIENT_ID,
-                    auto_select: false,
-                    itp_support: true,
-                    cancel_on_tap_outside: true,
-                    callback: (response) => {
-                        if (handledRef.current || !response.credential) return;
-                        handledRef.current = true;
-                        googleOneTapApi(response.credential)
-                            .then((result) => {
-                                toast.success(`Welcome, ${result.user.name}!`);
-                                navigate('/');
-                            })
-                            .catch(() => {
-                                handledRef.current = false;
-                                toast.error('Google sign in failed');
-                            });
-                    },
-                });
+            try {
+                await loadGisScript();
+            } catch {
+                return;
+            }
+            if (cancelled || !window.google?.accounts?.id) return;
+            if (isOneTapCoolingDown() || isOneTapSkippedThisSession()) return;
 
-                // Delay so logout cleanup (cancel / disableAutoSelect) finishes first.
-                promptTimer = setTimeout(() => {
-                    if (cancelled || isOneTapCoolingDown()) return;
-                    window.google?.accounts?.id?.prompt((notification) => {
-                        void notification;
-                    });
-                }, 400);
-            })
-            .catch(() => {
-                /* GIS unavailable — skip One Tap */
+            markOneTapPromptedThisLoad();
+
+            window.google.accounts.id.initialize({
+                client_id: CLIENT_ID,
+                auto_select: false,
+                use_fedcm_for_prompt: true,
+                cancel_on_tap_outside: true,
+                callback: (response) => {
+                    if (handledRef.current || !response.credential) return;
+                    handledRef.current = true;
+                    googleOneTapApi(response.credential)
+                        .then((result) => {
+                            toast.success(`Welcome, ${result.user.name}!`);
+                            navigate('/');
+                        })
+                        .catch(() => {
+                            handledRef.current = false;
+                            toast.error('Google sign in failed');
+                        });
+                },
             });
+
+            // Delay so logout cleanup (cancel / disableAutoSelect) finishes first.
+            promptTimer = setTimeout(() => {
+                if (cancelled || isOneTapCoolingDown() || isOneTapSkippedThisSession()) return;
+                try {
+                    // No notification callback — FedCM path deprecates status helpers,
+                    // and calling them triggers extra GSI_LOGGER noise.
+                    window.google?.accounts?.id?.prompt();
+                } catch {
+                    skipGoogleOneTapPermanentlyForSession();
+                }
+            }, 400);
+        })();
 
         return () => {
             cancelled = true;
             if (promptTimer) clearTimeout(promptTimer);
-            window.google?.accounts?.id?.cancel();
+            try {
+                window.google?.accounts?.id?.cancel();
+            } catch {
+                /* ignore */
+            }
         };
     }, [navigate]);
 
